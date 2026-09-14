@@ -1,0 +1,10 @@
+flask
+flask-cors
+python-dotenv
+pytest
+
+# Driver del motor de base de datos: agrega el que corresponda cuando
+# el equipo cierre el esquema en dbdiagram.io. Ejemplos:
+# psycopg2-binary   (PostgreSQL)
+# mysqlclient       (MySQL)
+# pymysql           (MySQL, alternativa pura Python)
