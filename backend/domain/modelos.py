@@ -38,4 +38,4 @@ class Diagnostico:
         self.estado = estado
         self.parametros = parametros
         self.recomendaciones = recomendaciones
-
+        

@@ -55,9 +55,28 @@
 
 ---
 
+## Sesión 2026-09-16
+
+### 1. Fix del bug de indentación en `Rango.clasificar`
+- **Se pidió:** revisar el bug detectado al cierre de la sesión anterior — en `backend/domain/valores.py`, `clasificar` había quedado fuera del cuerpo de `class Rango` (aunque recibía `self`) por una indentación incorrecta.
+- **Propuso la IA:** explicó la causa (la indentación sacaba el método del bloque de la clase, quedando como función suelta del módulo) sin escribir el fix, para que el equipo lo corrigiera.
+- **Se aceptó / cambió:** el equipo corrigió la indentación; se verificó que `clasificar` quedó correctamente como método de instancia de `Rango`.
+
+### 2. Definición y justificación de la regla de agregación (RF3)
+- **Se pidió:** ayuda para definir y justificar la regla de RF3 (qué combinación de parámetros fuera de rango da SALUDABLE/EN_RIESGO/CRITICO), aclarando que el equipo no tiene conocimiento de botánica para basarse en umbrales "científicos".
+- **Propuso la IA:** distinguió severidad por *cantidad* de parámetros fuera de rango vs. por *magnitud* de la desviación; señaló que una regla basada en *duración* fuera de rango quedaba fuera de alcance de este corte porque requeriría modelar un histórico de mediciones con timestamps (ya anotado como evolución especulativa futura, no parte de este corte). Propuso una fórmula de desviación porcentual relativa al límite excedido (con caso especial: usar el ancho del rango en vez del límite si este es 0, para evitar división por cero) y una regla de tres niveles: umbral leve (tolerado, cuenta como OPTIMO), zona intermedia (cuenta para la regla de conteo: 1 parámetro fuera → EN_RIESGO, 2+ → CRITICO), y umbral severo (un solo parámetro con esa desviación dispara CRITICO directo, sin importar los demás).
+- **Se aceptó / cambió:** el equipo definió la fórmula relativa al límite excedido (con el caso especial de ancho del rango si el límite es 0), umbral leve = 10%, umbral severo = 50%. Las recomendaciones del `Diagnostico` quedan, por ahora, como texto fijo por `EstadoPlanta` (no dependen de qué parámetro falló) — documentado explícitamente como simplificación de esta entrega, a evolucionar más adelante para depender de los parámetros específicos.
+
+### 3. Diseño del esqueleto de `EvaluadorDiagnostico`
+- **Se pidió:** ayuda para diseñar `EvaluadorDiagnostico.evaluar()` ya con la regla de RF3 definida.
+- **Propuso la IA:** esqueleto en pseudocódigo (sin código Python) de los pasos del método — clasificar cada parámetro con su desviación, contar los fuera de rango, detectar si alguno es severo, agregar al `EstadoPlanta` global y construir el `Diagnostico`; preguntó si `calcular_desviacion`/`clasificar_parametro` debían vivir en `Rango` o como métodos privados del evaluador.
+- **Se aceptó / cambió:** el equipo decidió implementarlos como métodos privados de `EvaluadorDiagnostico`, para no cargar a `Rango` (value object genérico) con lógica específica de este diagnóstico. El equipo escribe el código de `evaluador.py` a partir de este diseño.
+
+---
+
 ## Pendientes abiertos (para no perderlos)
 - [x] ~~Decidir si se reutiliza `arquitectura_de_software/` o se abre una carpeta/repo nuevo~~ → resuelto: repo nuevo en `diagnostico-plantas/`.
-- [ ] Definir y justificar la regla de agregación de RF3 (qué combinación de BAJO/ALTO da CRITICO vs EN_RIESGO).
+- [x] ~~Definir y justificar la regla de agregación de RF3 (qué combinación de BAJO/ALTO da CRITICO vs EN_RIESGO)~~ → resuelto en sesión 2026-09-16: desviación % relativa al límite, umbral leve 10%, umbral severo 50%.
 - [ ] Decidir esquema de BD final en dbdiagram.io (tabla plana vs normalizada) para `especies`/`rangos_referencia`, y motor concreto (Postgres/MySQL/otro) para completar `requirements.txt` y `DATABASE_URL`.
 - [ ] Decidir si se modela histórico de mediciones en el diagrama especulativo de evolución.
-- [ ] Diseñar el modelo de dominio (`EvaluadorDiagnostico` y sus objetos) — código lo escribe el equipo.
+- [ ] Implementar `EvaluadorDiagnostico.evaluar()` en código, a partir del diseño acordado en la sesión 2026-09-16 — código lo escribe el equipo.

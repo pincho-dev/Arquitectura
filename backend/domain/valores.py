@@ -17,12 +17,11 @@ class Rango():
         self.minimo = minimo
         self.maximo = maximo
         
-
-def clasificar(self, valor):
-    if valor < self.minimo:
-        return EstadoParametro.BAJO
-    elif valor > self.maximo:
-        return EstadoParametro.ALTO
-    else:
-        return EstadoParametro.OPTIMO
+    def clasificar(self, valor):
+        if valor < self.minimo:
+            return EstadoParametro.BAJO
+        elif valor > self.maximo:
+            return EstadoParametro.ALTO
+        else:
+            return EstadoParametro.OPTIMO
         
