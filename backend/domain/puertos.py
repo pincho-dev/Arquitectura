@@ -5,3 +5,5 @@ class EspecieLookup(ABC):
     @abstractmethod
     def obtener_rangos(self, nombre_especie):
         pass
+class EspecieNoEncontrada(Exception):
+    pass

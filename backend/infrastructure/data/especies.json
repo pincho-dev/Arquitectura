@@ -1,0 +1,17 @@
+{
+    "potus": {
+        "humedad": {"minimo": 40, "maximo": 70},
+        "luz": {"minimo": 200, "maximo": 800},
+        "temperatura": {"minimo": 18, "maximo": 27}
+    },
+    "suculenta": {
+        "humedad": {"minimo": 10, "maximo": 30},
+        "luz": {"minimo": 500, "maximo": 1200},
+        "temperatura": {"minimo": 15, "maximo": 32}
+    },
+    "helecho": {
+        "humedad": {"minimo": 60, "maximo": 90},
+        "luz": {"minimo": 100, "maximo": 500},
+        "temperatura": {"minimo": 16, "maximo": 24}
+    }
+}

@@ -1,5 +1,5 @@
-from backend.domain.modelos import Diagnostico, ParametroEvaluado
-from backend.domain.valores import EstadoPlanta
+from domain.modelos import Diagnostico, ParametroEvaluado
+from domain.valores import EstadoPlanta
 
 class EvaluadorDiagnostico:
 
