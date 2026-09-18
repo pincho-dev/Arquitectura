@@ -17,3 +17,6 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
+
+# Enunciado del curso (referencia local, no versionar)
+*.pdf
