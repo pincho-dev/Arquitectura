@@ -7,3 +7,7 @@ class EspecieLookup(ABC):
         pass
 class EspecieNoEncontrada(Exception):
     pass
+class CatalogoEspecies(ABC):
+    @abstractmethod
+    def listar(self):
+        pass

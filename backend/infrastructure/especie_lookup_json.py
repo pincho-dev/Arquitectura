@@ -1,10 +1,10 @@
 import json 
 from pathlib import Path
-from domain.puertos import EspecieLookup, EspecieNoEncontrada
+from domain.puertos import EspecieLookup, EspecieNoEncontrada, CatalogoEspecies
 from domain.modelos import RangosEspecie
 from domain.valores import Rango
 
-class EspecieLookupJson (EspecieLookup):
+class EspecieLookupJson (EspecieLookup, CatalogoEspecies):
 
     def __init__(self, ruta_archivo = None):
         if ruta_archivo is None:
@@ -23,4 +23,6 @@ class EspecieLookupJson (EspecieLookup):
             rango_temperatura = Rango(entrada["temperatura"]["minimo"], entrada["temperatura"]["maximo"]),
             rango_luz = Rango(entrada["luz"]["minimo"], entrada["luz"]["maximo"])
         )
+    def listar(self):
+        return [self.obtener_rangos(nombre) for nombre in self.datos_especies]
 

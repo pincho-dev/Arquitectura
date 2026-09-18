@@ -57,3 +57,31 @@ def test_usa_el_archivo_de_datos_por_defecto_si_no_se_pasa_ruta():
     rangos = lookup.obtener_rangos("suculenta")
 
     assert rangos.nombre == "suculenta"
+
+
+def test_listar_devuelve_los_rangos_de_todas_las_especies(tmp_path):
+    contenido = {
+        "potus": {
+            "humedad": {"minimo": 40, "maximo": 70},
+            "luz": {"minimo": 200, "maximo": 800},
+            "temperatura": {"minimo": 18, "maximo": 27},
+        },
+        "suculenta": {
+            "humedad": {"minimo": 10, "maximo": 30},
+            "luz": {"minimo": 500, "maximo": 1200},
+            "temperatura": {"minimo": 15, "maximo": 32},
+        },
+    }
+    ruta = _crear_json(tmp_path, contenido)
+    lookup = EspecieLookupJson(ruta)
+
+    especies = lookup.listar()
+
+    assert {rangos.nombre for rangos in especies} == {"potus", "suculenta"}
+
+
+def test_listar_devuelve_lista_vacia_si_no_hay_especies(tmp_path):
+    ruta = _crear_json(tmp_path, {})
+    lookup = EspecieLookupJson(ruta)
+
+    assert lookup.listar() == []
