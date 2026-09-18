@@ -1,365 +1,484 @@
-/*
- * Cliente web del sistema de diagnóstico.
- *
- * Este archivo se encarga de:
- * - manejar el formulario;
- * - comunicarse con la API;
- * - mostrar los datos recibidos.
- *
- * Las reglas para determinar BAJO, OPTIMO, ALTO e
- * índice de vitalidad pertenecen al backend.
- */
-
-
-/*
- * Dirección temporal de la API.
- *
- * Cuando el equipo defina la dirección y los endpoints
- * definitivos, solamente se debe actualizar esta sección.
- */
 const API_URL = "http://localhost:5000";
 
+// IMPORTANTE:
+// Estos endpoints son temporales.
+// Se deben cambiar cuando el equipo defina
+// oficialmente las rutas del backend.
 
-/*
- * Elementos principales de la página.
- */
-const formulario = document.getElementById("diagnostico-form");
-const selectorEspecie = document.getElementById("especie");
-const estadoEspecies = document.getElementById("estado-especies");
-
-const resultado = document.getElementById("resultado");
-const errorApi = document.getElementById("error-api");
-
-const mensajeFormulario = document.getElementById("mensaje-formulario");
-const mensajeError = document.getElementById("mensaje-error");
-const codigoError = document.getElementById("codigo-error");
-
-const botonDiagnostico = document.getElementById("boton-diagnostico");
+const ENDPOINTS = {
+    especies: "",
+    diagnostico: ""
+};
 
 
-/*
- * Carga inicial.
- *
- * La lista de especies debe venir de RF5.
- * Todavía no se llama a un endpoint porque el contrato
- * de la API aún no ha sido definido por el equipo.
- */
+
+
+const especie = document.getElementById("especie");
+
+const humedad = document.getElementById("humedad");
+const luz = document.getElementById("luz");
+const temperatura = document.getElementById("temperatura");
+
+const botonDiagnostico =
+    document.getElementById("boton-diagnostico");
+
+const resultado =
+    document.getElementById("resultado");
+
+const error =
+    document.getElementById("error");
+
+const mensajeError =
+    document.getElementById("mensaje-error");
+
+
+
+
+const indiceVitalidad =
+    document.getElementById("indice-vitalidad");
+
+const resultadoHumedad =
+    document.getElementById("resultado-humedad");
+
+const resultadoLuz =
+    document.getElementById("resultado-luz");
+
+const resultadoTemperatura =
+    document.getElementById("resultado-temperatura");
+
+const estadoIcon =
+    document.getElementById("estado-icon");
+
+const listaRecomendaciones =
+    document.getElementById("lista-recomendaciones");
+
+
+
+
 document.addEventListener("DOMContentLoaded", () => {
-    prepararFormulario();
+
+    cargarEspecies();
+
+    botonDiagnostico.addEventListener(
+        "click",
+        ejecutarDiagnostico
+    );
+
 });
 
 
-function prepararFormulario() {
+// CARGAR ESPECIES
 
-    selectorEspecie.innerHTML = "";
+async function cargarEspecies() {
 
-    const opcionInicial = document.createElement("option");
+    especie.innerHTML = "";
+
+    const opcionInicial =
+        document.createElement("option");
 
     opcionInicial.value = "";
-    opcionInicial.textContent = "Endpoint de especies pendiente";
+    opcionInicial.textContent =
+        "Selecciona una especie";
 
-    selectorEspecie.appendChild(opcionInicial);
-
-    selectorEspecie.disabled = true;
-
-    estadoEspecies.textContent =
-        "El endpoint de RF5 todavía no ha sido definido.";
-
-}
+    especie.appendChild(opcionInicial);
 
 
-/*
- * Evento principal del formulario.
- */
-formulario.addEventListener("submit", async (evento) => {
+    /*
+     * El endpoint todavía no está definido.
+     *
+     * Por eso no hacemos una petición falsa.
+     *
+     * Cuando el backend defina RF5, solamente
+     * será necesario colocar la ruta correspondiente
+     * en ENDPOINTS.especies.
+     */
 
-    evento.preventDefault();
+    if (!ENDPOINTS.especies) {
 
-    ocultarMensajes();
+        especie.disabled = true;
 
-    const datos = obtenerDatosFormulario();
+        const opcion =
+            document.createElement("option");
 
-    if (!validarFormulario(datos)) {
+        opcion.value = "";
+        opcion.textContent =
+            "Servicio de especies pendiente";
+
+        especie.appendChild(opcion);
+
         return;
     }
-
-    await realizarDiagnostico(datos);
-});
-
-
-/*
- * Obtiene únicamente los datos introducidos por el usuario.
- */
-function obtenerDatosFormulario() {
-
-    return {
-        especie: selectorEspecie.value,
-        humedad: document.getElementById("humedad").value,
-        luz: document.getElementById("luz").value,
-        temperatura: document.getElementById("temperatura").value
-    };
-
-}
-
-
-/*
- * Validaciones propias de la interfaz.
- *
- * No se validan aquí los rangos de referencia de la especie.
- * Esa decisión corresponde al backend.
- */
-function validarFormulario(datos) {
-
-    if (!datos.especie) {
-        mostrarMensajeFormulario(
-            "Seleccione una especie antes de continuar."
-        );
-
-        return false;
-    }
-
-
-    if (
-        datos.humedad === "" ||
-        datos.luz === "" ||
-        datos.temperatura === ""
-    ) {
-
-        mostrarMensajeFormulario(
-            "Complete los tres parámetros de la medición."
-        );
-
-        return false;
-    }
-
-
-    if (
-        !esNumero(datos.humedad) ||
-        !esNumero(datos.luz) ||
-        !esNumero(datos.temperatura)
-    ) {
-
-        mostrarMensajeFormulario(
-            "Los valores de la medición deben ser numéricos."
-        );
-
-        return false;
-    }
-
-
-    return true;
-}
-
-
-/*
- * Comprueba si un valor puede convertirse en número.
- */
-function esNumero(valor) {
-
-    return valor.trim() !== "" && Number.isFinite(Number(valor));
-
-}
-
-
-/*
- * Realiza la petición de diagnóstico.
- *
- * IMPORTANTE:
- * El endpoint y la estructura del JSON son temporales.
- * Esta función será ajustada cuando el backend defina
- * oficialmente su contrato.
- */
-async function realizarDiagnostico(datos) {
-
-    botonDiagnostico.disabled = true;
-    botonDiagnostico.textContent = "Consultando...";
 
 
     try {
 
-        /*
-         * TODO:
-         *
-         * Cuando el backend defina el endpoint, esta petición
-         * se completará con la ruta y el JSON acordados.
-         *
-         * Ejemplo de estructura:
-         *
-         * fetch(`${API_URL}/ruta-definitiva`, {
-         *     method: "POST",
-         *     headers: {
-         *         "Content-Type": "application/json"
-         *     },
-         *     body: JSON.stringify(datos)
-         * });
-         */
-
-
-        mostrarErrorApi(
-            "El endpoint de diagnóstico todavía no ha sido definido.",
-            "API pendiente"
+        const response = await fetch(
+            `${API_URL}${ENDPOINTS.especies}`
         );
 
-    } catch (error) {
 
-        mostrarErrorApi(
-            "No fue posible comunicarse con el servicio de diagnóstico.",
-            "ERROR_RED"
+        if (!response.ok) {
+
+            throw new Error(
+                "No fue posible obtener las especies."
+            );
+
+        }
+
+
+        const especies = await response.json();
+
+
+        especies.forEach(nombreEspecie => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = nombreEspecie;
+            option.textContent = nombreEspecie;
+
+            especie.appendChild(option);
+
+        });
+
+
+        especie.disabled = false;
+
+    }
+
+    catch (err) {
+
+        mostrarError(
+            "No fue posible cargar la lista de especies."
         );
 
-    } finally {
-
-        botonDiagnostico.disabled = false;
-        botonDiagnostico.textContent = "Consultar diagnóstico";
+        console.error(err);
 
     }
 
 }
 
 
-/*
- * Muestra el diagnóstico recibido desde la API.
- *
- * Esta función no calcula estados.
- * Solamente toma los valores entregados por el backend
- * y los presenta en pantalla.
- *
- * La estructura exacta del objeto se ajustará al contrato
- * definitivo de la API.
- */
-function mostrarDiagnostico(diagnostico) {
+// EJECUTAR DIAGNÓSTICO
 
-    resultado.classList.remove("oculto");
-    errorApi.classList.add("oculto");
+async function ejecutarDiagnostico() {
+
+    ocultarError();
+
+    resultado.classList.add("hidden");
 
 
-    /*
-     * Índice de vitalidad.
-     */
-    document.getElementById("indice-vitalidad").textContent =
-        diagnostico.indice_vitalidad ?? "-";
 
 
-    /*
-     * Estados individuales.
-     */
-    mostrarEstado(
-        "estado-humedad",
-        diagnostico.humedad
-    );
+    const especieSeleccionada =
+        especie.value;
 
-    mostrarEstado(
-        "estado-luz",
-        diagnostico.luz
-    );
+    const valorHumedad =
+        Number(humedad.value);
 
-    mostrarEstado(
-        "estado-temperatura",
-        diagnostico.temperatura
-    );
+    const valorLuz =
+        Number(luz.value);
+
+    const valorTemperatura =
+        Number(temperatura.value);
 
 
-    /*
-     * Recomendaciones.
-     */
-    mostrarRecomendaciones(
-        diagnostico.recomendaciones
-    );
+    if (!especieSeleccionada) {
 
-}
+        mostrarError(
+            "Selecciona una especie antes de realizar el diagnóstico."
+        );
 
-
-/*
- * Presenta un estado recibido desde la API.
- */
-function mostrarEstado(idElemento, estado) {
-
-    const elemento = document.getElementById(idElemento);
-
-    elemento.textContent = estado ?? "-";
-
-    elemento.classList.remove(
-        "estado-bajo",
-        "estado-optimo",
-        "estado-alto"
-    );
-
-
-    if (!estado) {
         return;
     }
 
 
-    const estadoNormalizado =
-        String(estado).toUpperCase();
+    if (
+        humedad.value === "" ||
+        luz.value === "" ||
+        temperatura.value === ""
+    ) {
+
+        mostrarError(
+            "Debes ingresar humedad, luz y temperatura."
+        );
+
+        return;
+    }
 
 
-    if (estadoNormalizado === "BAJO") {
+    if (
+        !Number.isFinite(valorHumedad) ||
+        !Number.isFinite(valorLuz) ||
+        !Number.isFinite(valorTemperatura)
+    ) {
 
-        elemento.classList.add("estado-bajo");
+        mostrarError(
+            "Los valores ingresados deben ser numéricos."
+        );
 
-    } else if (estadoNormalizado === "OPTIMO") {
+        return;
+    }
 
-        elemento.classList.add("estado-optimo");
 
-    } else if (estadoNormalizado === "ALTO") {
+    // COMPROBACIONES FÍSICAS BÁSICAS
 
-        elemento.classList.add("estado-alto");
+    if (valorHumedad < 0) {
+
+        mostrarError(
+            "La humedad no puede ser negativa."
+        );
+
+        return;
+    }
+
+
+    if (valorLuz < 0) {
+
+        mostrarError(
+            "La intensidad de luz no puede ser negativa."
+        );
+
+        return;
+    }
+
+
+    // ------------------------------------
+    // ENDPOINT TODAVÍA NO DEFINIDO
+    // ------------------------------------
+
+    if (!ENDPOINTS.diagnostico) {
+
+        mostrarError(
+            "El endpoint de diagnóstico todavía no ha sido definido por el equipo."
+        );
+
+        return;
+    }
+
+
+    // DATOS QUE SE ENVIARÁN AL BACKEND
+
+    const datos = {
+
+        especie: especieSeleccionada,
+
+        humedad: valorHumedad,
+
+        luz: valorLuz,
+
+        temperatura: valorTemperatura
+
+    };
+
+
+    try {
+
+        botonDiagnostico.disabled = true;
+
+        botonDiagnostico.querySelector("span:first-child")
+            .textContent = "Analizando...";
+
+
+        const response = await fetch(
+            `${API_URL}${ENDPOINTS.diagnostico}`,
+            {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(datos)
+
+            }
+        );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            const mensaje =
+                data.mensaje ||
+                data.error ||
+                "El servidor rechazó la solicitud.";
+
+            throw new Error(mensaje);
+        }
+
+
+        mostrarDiagnostico(data);
+
+    }
+
+    catch (err) {
+
+        mostrarError(
+            err.message ||
+            "No fue posible conectarse con el servicio."
+        );
+
+        console.error(err);
+
+    }
+
+    finally {
+
+        botonDiagnostico.disabled = false;
+
+        botonDiagnostico.querySelector("span:first-child")
+            .textContent = "Analizar planta";
 
     }
 
 }
 
 
-/*
- * Presenta las recomendaciones entregadas por la API.
- */
-function mostrarRecomendaciones(recomendaciones) {
+// MOSTRAR DIAGNÓSTICO
 
-    const contenedor =
-        document.getElementById("lista-recomendaciones");
+function mostrarDiagnostico(data) {
 
-    contenedor.innerHTML = "";
+    resultado.classList.remove("hidden");
+
+
+    /*
+     * Estos nombres son provisionales.
+     *
+     * Cuando el equipo defina el JSON definitivo,
+     * solamente se adapta esta función.
+     *
+     * La lógica del diagnóstico NO se implementa
+     * aquí.
+     */
+
+
+    indiceVitalidad.textContent =
+        data.indice_vitalidad || "--";
+
+
+    resultadoHumedad.textContent =
+        data.humedad || "--";
+
+
+    resultadoLuz.textContent =
+        data.luz || "--";
+
+
+    resultadoTemperatura.textContent =
+        data.temperatura || "--";
+
+
+    cambiarIconoEstado(
+        data.indice_vitalidad
+    );
+
+
+    mostrarRecomendaciones(
+        data.recomendaciones
+    );
+
+
+    resultado.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+
+}
+
+
+
+
+function cambiarIconoEstado(estado) {
+
+    if (!estado) {
+
+        estadoIcon.textContent = "🌱";
+
+        return;
+    }
+
+
+    const valor =
+        String(estado).toUpperCase();
+
+
+    if (valor.includes("CRITICO")) {
+
+        estadoIcon.textContent = "⚠️";
+
+    }
+
+    else if (valor.includes("RIESGO")) {
+
+        estadoIcon.textContent = "🌿";
+
+    }
+
+    else if (valor.includes("SALUDABLE")) {
+
+        estadoIcon.textContent = "🌱";
+
+    }
+
+    else {
+
+        estadoIcon.textContent = "🌱";
+
+    }
+
+}
+
+
+
+
+function mostrarRecomendaciones(
+    recomendaciones
+) {
+
+    listaRecomendaciones.innerHTML = "";
 
 
     if (!recomendaciones) {
 
-        const mensaje = document.createElement("div");
-
-        mensaje.className = "recomendacion";
-        mensaje.textContent =
-            "No se recibieron recomendaciones.";
-
-        contenedor.appendChild(mensaje);
+        listaRecomendaciones.innerHTML =
+            `<p>No hay recomendaciones disponibles.</p>`;
 
         return;
     }
 
 
-    /*
-     * Permite trabajar inicialmente con un objeto de
-     * recomendaciones por parámetro.
-     *
-     * La estructura definitiva se ajustará al contrato
-     * del backend.
-     */
+    // Si el backend devuelve un objeto
     if (
         typeof recomendaciones === "object" &&
         !Array.isArray(recomendaciones)
     ) {
 
-        Object.entries(recomendaciones).forEach(
-            ([parametro, texto]) => {
+        Object.entries(recomendaciones)
+            .forEach(([parametro, mensaje]) => {
 
-                const elemento =
-                    document.createElement("div");
+                agregarRecomendacion(
+                    `${parametro}: ${mensaje}`
+                );
 
-                elemento.className = "recomendacion";
+            });
 
-                elemento.textContent =
-                    `${formatearParametro(parametro)}: ${texto}`;
+        return;
+    }
 
-                contenedor.appendChild(elemento);
+
+    // Si el backend devuelve una lista
+    if (Array.isArray(recomendaciones)) {
+
+        recomendaciones.forEach(
+            recomendacion => {
+
+                agregarRecomendacion(
+                    recomendacion
+                );
 
             }
         );
@@ -368,82 +487,52 @@ function mostrarRecomendaciones(recomendaciones) {
     }
 
 
-    /*
-     * También permite una lista de textos.
-     */
-    if (Array.isArray(recomendaciones)) {
-
-        recomendaciones.forEach((texto) => {
-
-            const elemento =
-                document.createElement("div");
-
-            elemento.className = "recomendacion";
-            elemento.textContent = texto;
-
-            contenedor.appendChild(elemento);
-
-        });
-
-    }
+    agregarRecomendacion(
+        recomendaciones
+    );
 
 }
 
 
-/*
- * Convierte los nombres técnicos de los parámetros
- * en nombres más legibles para la interfaz.
- */
-function formatearParametro(parametro) {
-
-    const nombres = {
-        humedad: "Humedad",
-        luz: "Luz",
-        temperatura: "Temperatura"
-    };
-
-    return nombres[parametro] ?? parametro;
-
-}
 
 
-/*
- * Muestra un mensaje relacionado con el formulario.
- */
-function mostrarMensajeFormulario(mensaje) {
+function agregarRecomendacion(texto) {
 
-    mensajeFormulario.textContent = mensaje;
+    const elemento =
+        document.createElement("div");
 
-    mensajeFormulario.classList.remove("oculto");
-    mensajeFormulario.classList.add("error");
+    elemento.className =
+        "recommendation-item";
+
+    elemento.textContent =
+        `💡 ${texto}`;
+
+    listaRecomendaciones.appendChild(
+        elemento
+    );
 
 }
 
 
-/*
- * Muestra un error procedente de la comunicación
- * con la API.
- */
-function mostrarErrorApi(mensaje, codigo = "") {
 
-    resultado.classList.add("oculto");
 
-    errorApi.classList.remove("oculto");
+function mostrarError(mensaje) {
+
+    error.classList.remove("hidden");
 
     mensajeError.textContent = mensaje;
 
-    codigoError.textContent =
-        codigo ? `Código: ${codigo}` : "";
+    error.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
 
 }
 
 
-/*
- * Limpia los mensajes anteriores.
- */
-function ocultarMensajes() {
 
-    mensajeFormulario.classList.add("oculto");
-    errorApi.classList.add("oculto");
+function ocultarError() {
+
+    error.classList.add("hidden");
 
 }
