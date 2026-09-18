@@ -6,7 +6,7 @@ from flask_cors import CORS
 import os
 
 from application.diagnosticar_planta import DiagnosticarPlanta
-from infrastructure.especie_lookup_json import EspecieLookupJson
+from infrastructure.especie_lookup_csv import EspecieLookupCsv
 from domain.modelos import ValorFueraDeRangoFisico
 from domain.puertos import EspecieNoEncontrada
 from application.listar_especies import ListarEspecies
@@ -14,7 +14,7 @@ from application.listar_especies import ListarEspecies
 app = Flask(__name__)
 CORS(app, origins=os.environ.get("CORS_ORIGIN", "*"))
 
-especie_lookup = EspecieLookupJson()
+especie_lookup = EspecieLookupCsv()
 caso_de_uso = DiagnosticarPlanta(especie_lookup)
 caso_de_uso_especies = ListarEspecies(especie_lookup)
 
