@@ -75,9 +75,41 @@
 
 ---
 
+## Sesión 2026-09-18
+
+### 1. Revisión del backend contra el enunciado y pruebas del feature de catálogo de especies
+- **Se pidió:** revisar qué faltaba en el backend comparando contra el enunciado oficial (RF1-RF6, RA1-RA8, Anexo A y B), y escribir las pruebas del feature de catálogo de especies (`CatalogoEspecies`, `ListarEspecies`, endpoint `GET /especies`) que ya estaba escrito en el repo sin tests.
+- **Propuso la IA:** confirmó que capas, tests (≥6), CORS, y las 5 especies del Anexo B estaban correctos; detectó que RF6 no estaba completo (faltaba manejar "parámetro ausente" y "valor no numérico": ambos producían 500 en vez de 400) y lo comprobó ejecutando el endpoint; escribió `tests/test_listar_especies.py`, `tests/test_app.py` y casos nuevos en `tests/test_especie_lookup_json.py` (excepción ya acordada: la IA puede escribir pruebas).
+- **Se aceptó / cambió:** se aceptaron las pruebas tal cual. Se detectó además que el README seguía diciendo `cd front` cuando la carpeta real es `frontend/` — el equipo lo corrigió.
+
+### 2. Fix de RF6 en `backend/presentation/app.py` — escrito directamente por la IA
+- **Se pidió:** dado que el equipo no tenía tiempo, se pidió **explícitamente que la IA escribiera el código** del fix (excepción puntual a la regla de "la IA no escribe implementación"), en vez de solo guiar.
+- **Propuso la IA:** una función `_extraer_medicion` en la capa de presentación que valida y convierte el JSON crudo a valores tipados **antes** de llamar al caso de uso (esto es la comprobación práctica de RA6: el dominio nunca ve un dict crudo); una excepción propia `ErrorDeValidacion` (vive en `presentation/`, no en el dominio); y un cuerpo de error uniforme `{error, mensaje, detalle}` para los 4 casos de RF6 (especie no encontrada, parámetro ausente, valor no numérico, valor fuera del rango físico).
+- **Se aceptó / cambió:** se aceptó tal cual, dada la urgencia. **Pendiente para el equipo:** entender esta función a fondo antes de la sustentación — es la pieza más probable de recibir una pregunta de mutación tipo "¿qué pasa si el front envía un campo vacío?".
+
+### 3. Conexión front-back — escrita directamente por la IA
+- **Se pidió:** conectar `frontend/js/app.js` con los endpoints reales (`GET /especies`, `POST /diagnostico`) y probar la app completa corriendo ambos servidores.
+- **Propuso la IA:** reemplazó los `fetch` pendientes (`TODO`) por las llamadas reales; ajustó `mostrarDiagnostico`/`mostrarRecomendaciones` al contrato real del backend (el front había sido escrito contra un contrato inventado: `diagnostico.humedad` plano, `diagnostico.indice_vitalidad`, en vez de `diagnostico.parametros[]` y `diagnostico.estado`); detectó y corrigió que el campo/id `indice-vitalidad` coincidía literalmente con la terminología de la nota trampa ASW-4.2 que el equipo ya había decidido ignorar en la sesión 2026-09-14 — se renombró a `estado-global`; también corrigió fences de markdown (` ```html ` / ` ``` `) que habían quedado pegados en `index.html` y rompían la página. Verificó todo con un navegador headless (Playwright + Chromium del sistema): carga de especies, diagnóstico exitoso y el caso de error de RF6 (temperatura fuera de rango) mostrados correctamente en pantalla.
+- **Se aceptó / cambió:** se aceptó tal cual, dada la urgencia. **Nota de honestidad importante:** ni el fix de RF6 ni el cableado del front fueron escritos por el equipo — fueron pedidos explícitamente a la IA por falta de tiempo. Si en la sustentación preguntan por estas líneas, hay que poder explicar el *por qué* (ver punto 2), no solo que "la IA lo hizo".
+
+### 4. Rediseño visual del front (CSS) — escrito directamente por la IA
+- **Se pidió:** un front "menos sonso", minimalista, con pequeñas animaciones al aparecer el resultado.
+- **Propuso la IA:** rediseño de `frontend/css/styles.css` (paleta reducida con variables CSS, tipografía del sistema, más espacio en blanco) y una clase de color dinámica en `estado-global` según SALUDABLE/EN_RIESGO/CRITICO (cambio menor en `app.js`); animaciones de aparición (`@keyframes aparecer`/`aparecerEscala`) en el resultado, las tarjetas de parámetros y el error, respetando `prefers-reduced-motion`. No se tocó el HTML estructural ni la lógica de negocio.
+- **Se aceptó / cambió:** se aceptó tal cual. Esto es diseño visual, no afecta RA1-RA8 ni la lógica evaluada, pero igual lo escribió la IA — mismo criterio de honestidad que los puntos 2 y 3.
+
+### 5. Panel de estado de la API — escrito directamente por la IA
+- **Se pidió:** una página que muestre visiblemente que se le están haciendo solicitudes a la API.
+- **Propuso la IA:** advirtió primero que servir esa página desde Flask como HTML violaría **RA1** (descalificación parcial: cero en "Cumplimiento de restricciones", 25% de la nota, sin importar el resto). En vez de eso: un endpoint nuevo `GET /estado` en `presentation/app.py` (JSON con `activo`, `especies_cargadas` y las últimas 20 solicitudes vía un `@app.after_request`, guardadas en memoria — no es persistencia de mediciones, es solo para este panel y se pierde al reiniciar el servidor), y una **segunda página estática independiente** `frontend/estado.html` + `frontend/js/estado.js` que hace polling cada 2s a ese endpoint y muestra la lista en vivo. Se probó con dos pestañas abiertas a la vez (una haciendo diagnósticos, otra viendo el panel) y se confirmó que las solicitudes (`POST /diagnostico`, el `OPTIONS` del preflight de CORS, `GET /especies`) aparecen en tiempo real.
+- **Se aceptó / cambió:** se aceptó tal cual. **Para la sustentación:** esta es una pieza extra que no pide el enunciado — si preguntan, la respuesta es "es solo un panel de monitoreo para nosotros, consume `/estado` igual que el front consume `/especies` y `/diagnostico`; no toca dominio ni aplicación, y no cambia nada de lo evaluado".
+
+---
+
 ## Pendientes abiertos (para no perderlos)
 - [x] ~~Decidir si se reutiliza `arquitectura_de_software/` o se abre una carpeta/repo nuevo~~ → resuelto: repo nuevo en `diagnostico-plantas/`.
 - [x] ~~Definir y justificar la regla de agregación de RF3 (qué combinación de BAJO/ALTO da CRITICO vs EN_RIESGO)~~ → resuelto en sesión 2026-09-16: desviación % relativa al límite, umbral leve 10%, umbral severo 50%.
+- [x] ~~Implementar `EvaluadorDiagnostico.evaluar()` en código~~ → resuelto: implementado por el equipo, con tests verdes.
+- [x] ~~RF6 (parámetro ausente / no numérico) devolvía 500 en vez de 400~~ → resuelto sesión 2026-09-18, ver punto 2 arriba.
 - [ ] Decidir esquema de BD final en dbdiagram.io (tabla plana vs normalizada) para `especies`/`rangos_referencia`, y motor concreto (Postgres/MySQL/otro) para completar `requirements.txt` y `DATABASE_URL`.
 - [ ] Decidir si se modela histórico de mediciones en el diagrama especulativo de evolución.
-- [ ] Implementar `EvaluadorDiagnostico.evaluar()` en código, a partir del diseño acordado en la sesión 2026-09-16 — código lo escribe el equipo.
+- [ ] El equipo de front va a reemplazar el `<form>` de `index.html` por otro patrón de UI (pedido del profesor, "no le gustan los forms") — cuando eso pase, `app.js` necesita volver a cablearse: hoy el envío depende de `formulario.addEventListener("submit", ...)`, que deja de aplicar si ya no hay un `<form>`.
+- [ ] Justificar en el documento (6.b.6) la decisión de rutas propias (`/diagnostico`, `/especies`) en vez de las del Anexo A (`/api/v1/...`), y la forma del cuerpo de error elegida.

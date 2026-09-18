@@ -6,7 +6,7 @@ Proyecto de corte — Arquitectura de Software. Servicio que, dadas unas medicio
 
 ```
 backend/     API Flask (dominio, aplicación, presentación, infraestructura)
-front/       Cliente HTML/CSS/JS estático, servido por separado del backend
+frontend/    Cliente HTML/CSS/JS estático, servido por separado del backend
 docs/        Documento de arquitectura, diagramas y bitácora de uso de IA
 ```
 
@@ -36,7 +36,7 @@ La API queda disponible en `http://localhost:5000` (configurable en `.env`).
 El front es HTML/CSS/JS estático, sin build. Basta con servirlo con cualquier servidor estático, por ejemplo:
 
 ```bash
-cd front
+cd frontend
 python -m http.server 5500
 ```
 
