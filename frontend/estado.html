@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Estado de la API</title>
+    <title>Matera Inteligente | Estado de la API</title>
 
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/estado.css">
@@ -12,52 +12,59 @@
 
 <body>
 
-    <main class="contenedor">
+    <main class="panel-estado">
 
-        <header class="encabezado">
-            <p class="etiqueta">MATERA INTELIGENTE</p>
+        <header class="topbar">
 
-            <h1>Estado de la API</h1>
+            <div class="brand">
+                <div class="brand-icon">🌱</div>
 
-            <p class="descripcion">
-                Monitoreo en vivo de las solicitudes que llegan al backend.
-                Esta página es un cliente estático independiente más: consulta
-                <code>GET /estado</code> cada par de segundos, igual que el
-                front principal consulta <code>/especies</code> y
-                <code>/diagnostico</code>.
-            </p>
+                <div>
+                    <span class="brand-small">MATERA INTELIGENTE</span>
+                    <h1>Estado de la API</h1>
+                </div>
+            </div>
+
         </header>
 
 
-        <section class="tarjeta">
+        <p class="panel-descripcion">
+            Monitoreo en vivo de las solicitudes que llegan al backend.
+            Esta página es un cliente estático independiente más: consulta
+            <code>GET /estado</code> cada par de segundos, igual que
+            <code>index.html</code> consulta <code>/especies</code> y
+            <code>/diagnostico</code>.
+        </p>
+
+
+        <section class="panel-card">
 
             <div class="estado-servicio">
                 <span id="punto-actividad" class="punto-actividad"></span>
 
                 <div>
                     <h2 id="titulo-servicio">Conectando con la API...</h2>
-                    <p id="detalle-servicio" class="texto-ayuda">—</p>
+                    <p id="detalle-servicio" class="panel-ayuda">—</p>
                 </div>
             </div>
 
         </section>
 
 
-        <section class="tarjeta">
+        <section class="panel-card">
 
-            <h2>Solicitudes recientes</h2>
+            <h3>Solicitudes recientes</h3>
 
             <div id="lista-solicitudes" class="lista-solicitudes">
-                <p class="texto-ayuda">Todavía no hay solicitudes registradas.</p>
+                <p class="panel-ayuda">Todavía no hay solicitudes registradas.</p>
             </div>
 
         </section>
 
 
-        <footer class="pie">
-            <p>
-                Cliente web independiente — no genera HTML en el backend (RA1).
-            </p>
+        <footer>
+            <span>Matera Inteligente</span>
+            <span>No genera HTML en el backend (RA1) · <a href="index.html">Volver al diagnóstico</a></span>
         </footer>
 
     </main>
