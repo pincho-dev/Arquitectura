@@ -1,0 +1,222 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Diagnóstico de plantas</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+    <main class="contenedor">
+
+        <header class="encabezado">
+            <p class="etiqueta">MATERA INTELIGENTE</p>
+
+            <h1>Sistema de diagnóstico de plantas</h1>
+
+            <p class="descripcion">
+                Ingresa las condiciones actuales de la planta para consultar
+                su diagnóstico.
+            </p>
+        </header>
+
+
+        <section class="tarjeta">
+
+            <h2>Datos de la medición</h2>
+
+            <form id="diagnostico-form">
+
+                <div class="campo campo-especie">
+                    <label for="especie">Especie</label>
+
+                    <select id="especie" name="especie" required>
+                        <option value="">
+                            Cargando especies...
+                        </option>
+                    </select>
+
+                    <small id="estado-especies" class="texto-ayuda">
+                        Las especies se cargarán desde la API.
+                    </small>
+                </div>
+
+
+                <div class="grupo-campos">
+
+                    <div class="campo">
+                        <label for="humedad">
+                            Humedad del sustrato (%)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="humedad"
+                            name="humedad"
+                            step="any"
+                            placeholder="Ej. 55"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="campo">
+                        <label for="luz">
+                            Nivel de luz (lux)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="luz"
+                            name="luz"
+                            step="any"
+                            placeholder="Ej. 12000"
+                            required
+                        >
+                    </div>
+
+
+                    <div class="campo">
+                        <label for="temperatura">
+                            Temperatura (°C)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="temperatura"
+                            name="temperatura"
+                            step="any"
+                            placeholder="Ej. 24"
+                            required
+                        >
+                    </div>
+
+                </div>
+
+
+                <div id="mensaje-formulario" class="mensaje oculto"></div>
+
+
+                <button type="submit" id="boton-diagnostico">
+                    Consultar diagnóstico
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <section
+            id="resultado"
+            class="resultado oculto"
+            aria-live="polite"
+        >
+
+            <div class="resultado-cabecera">
+
+                <p class="etiqueta">RESULTADO</p>
+
+                <h2>Diagnóstico de la planta</h2>
+
+                <div id="indice-vitalidad" class="vitalidad">
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="parametros">
+
+                <article class="parametro">
+
+                    <div class="parametro-icono">💧</div>
+
+                    <div>
+                        <h3>Humedad</h3>
+                        <p id="estado-humedad">-</p>
+                    </div>
+
+                </article>
+
+
+                <article class="parametro">
+
+                    <div class="parametro-icono">☀️</div>
+
+                    <div>
+                        <h3>Luz</h3>
+                        <p id="estado-luz">-</p>
+                    </div>
+
+                </article>
+
+
+                <article class="parametro">
+
+                    <div class="parametro-icono">🌡️</div>
+
+                    <div>
+                        <h3>Temperatura</h3>
+                        <p id="estado-temperatura">-</p>
+                    </div>
+
+                </article>
+
+            </div>
+
+
+            <div class="recomendaciones">
+
+                <h3>Recomendaciones</h3>
+
+                <div id="lista-recomendaciones">
+                    <!-- Las recomendaciones llegan desde la API. -->
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section
+            id="error-api"
+            class="error-api oculto"
+            aria-live="assertive"
+        >
+
+            <div class="error-icono">!</div>
+
+            <div>
+                <h2>No fue posible realizar el diagnóstico</h2>
+
+                <p id="mensaje-error">
+                    Ocurrió un error al comunicarse con el servicio.
+                </p>
+
+                <p id="codigo-error" class="codigo-error"></p>
+            </div>
+
+        </section>
+
+
+        <footer class="pie">
+
+            <p>
+                Cliente web independiente de la API de diagnóstico.
+            </p>
+
+        </footer>
+
+    </main>
+
+
+    <script src="js/app.js"></script>
+
+</body>
+</html>
+```
