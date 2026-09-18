@@ -6,16 +6,14 @@
  * - comunicarse con la API;
  * - mostrar los datos recibidos.
  *
- * Las reglas para determinar BAJO, OPTIMO, ALTO e
- * índice de vitalidad pertenecen al backend.
+ * Las reglas para determinar BAJO, OPTIMO, ALTO y el
+ * estado global de la planta pertenecen al backend.
  */
 
 
 /*
- * Dirección temporal de la API.
- *
- * Cuando el equipo defina la dirección y los endpoints
- * definitivos, solamente se debe actualizar esta sección.
+ * Dirección de la API. Debe coincidir con FLASK_RUN_PORT
+ * y con CORS_ORIGIN configurados en el .env del backend.
  */
 const API_URL = "http://localhost:5000";
 
@@ -40,30 +38,57 @@ const botonDiagnostico = document.getElementById("boton-diagnostico");
 /*
  * Carga inicial.
  *
- * La lista de especies debe venir de RF5.
- * Todavía no se llama a un endpoint porque el contrato
- * de la API aún no ha sido definido por el equipo.
+ * La lista de especies viene de RF5 (GET /especies).
  */
 document.addEventListener("DOMContentLoaded", () => {
     prepararFormulario();
 });
 
 
-function prepararFormulario() {
+async function prepararFormulario() {
 
     selectorEspecie.innerHTML = "";
-
-    const opcionInicial = document.createElement("option");
-
-    opcionInicial.value = "";
-    opcionInicial.textContent = "Endpoint de especies pendiente";
-
-    selectorEspecie.appendChild(opcionInicial);
-
     selectorEspecie.disabled = true;
+    estadoEspecies.textContent = "Cargando especies...";
 
-    estadoEspecies.textContent =
-        "El endpoint de RF5 todavía no ha sido definido.";
+    try {
+
+        const respuesta = await fetch(`${API_URL}/especies`);
+
+        if (!respuesta.ok) {
+            throw new Error("La API respondió con un error al listar especies.");
+        }
+
+        const especies = await respuesta.json();
+
+        const opcionInicial = document.createElement("option");
+        opcionInicial.value = "";
+        opcionInicial.textContent = "Seleccione una especie";
+        selectorEspecie.appendChild(opcionInicial);
+
+        especies.forEach((especie) => {
+            const opcion = document.createElement("option");
+            opcion.value = especie.nombre;
+            opcion.textContent = capitalizar(especie.nombre);
+            selectorEspecie.appendChild(opcion);
+        });
+
+        selectorEspecie.disabled = false;
+        estadoEspecies.textContent = "";
+
+    } catch (error) {
+
+        selectorEspecie.innerHTML = "";
+
+        const opcionError = document.createElement("option");
+        opcionError.value = "";
+        opcionError.textContent = "No se pudo cargar la lista de especies";
+        selectorEspecie.appendChild(opcionError);
+
+        estadoEspecies.textContent =
+            "No fue posible comunicarse con la API para obtener las especies.";
+
+    }
 
 }
 
@@ -162,43 +187,40 @@ function esNumero(valor) {
 
 
 /*
- * Realiza la petición de diagnóstico.
+ * Realiza la petición de diagnóstico contra POST /diagnostico.
  *
- * IMPORTANTE:
- * El endpoint y la estructura del JSON son temporales.
- * Esta función será ajustada cuando el backend defina
- * oficialmente su contrato.
+ * El cuerpo de error que devuelve el backend en 4xx tiene
+ * siempre la forma { error, mensaje, detalle } (ver RF6 en
+ * backend/presentation/app.py).
  */
 async function realizarDiagnostico(datos) {
 
     botonDiagnostico.disabled = true;
     botonDiagnostico.textContent = "Consultando...";
 
-
     try {
 
-        /*
-         * TODO:
-         *
-         * Cuando el backend defina el endpoint, esta petición
-         * se completará con la ruta y el JSON acordados.
-         *
-         * Ejemplo de estructura:
-         *
-         * fetch(`${API_URL}/ruta-definitiva`, {
-         *     method: "POST",
-         *     headers: {
-         *         "Content-Type": "application/json"
-         *     },
-         *     body: JSON.stringify(datos)
-         * });
-         */
+        const respuesta = await fetch(`${API_URL}/diagnostico`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                especie: datos.especie,
+                humedad: Number(datos.humedad),
+                luz: Number(datos.luz),
+                temperatura: Number(datos.temperatura)
+            })
+        });
 
+        const cuerpo = await respuesta.json();
 
-        mostrarErrorApi(
-            "El endpoint de diagnóstico todavía no ha sido definido.",
-            "API pendiente"
-        );
+        if (!respuesta.ok) {
+            mostrarErrorApi(cuerpo.mensaje, cuerpo.error);
+            return;
+        }
+
+        mostrarDiagnostico(cuerpo);
 
     } catch (error) {
 
@@ -220,12 +242,11 @@ async function realizarDiagnostico(datos) {
 /*
  * Muestra el diagnóstico recibido desde la API.
  *
- * Esta función no calcula estados.
- * Solamente toma los valores entregados por el backend
- * y los presenta en pantalla.
+ * Esta función no calcula estados: solo toma lo que devuelve
+ * POST /diagnostico y lo presenta.
  *
- * La estructura exacta del objeto se ajustará al contrato
- * definitivo de la API.
+ * Contrato real (backend/presentation/app.py):
+ * { especie, estado, recomendaciones, parametros: [{ nombre, valor, unidad, estado }] }
  */
 function mostrarDiagnostico(diagnostico) {
 
@@ -234,29 +255,36 @@ function mostrarDiagnostico(diagnostico) {
 
 
     /*
-     * Índice de vitalidad.
+     * Estado global de la planta (SALUDABLE / EN_RIESGO / CRITICO).
+     * La clase adicional solo controla el color del badge (ver styles.css).
      */
-    document.getElementById("indice-vitalidad").textContent =
-        diagnostico.indice_vitalidad ?? "-";
+    const elementoEstadoGlobal = document.getElementById("estado-global");
+
+    elementoEstadoGlobal.textContent = diagnostico.estado ?? "-";
+    elementoEstadoGlobal.className = "vitalidad";
+
+    if (diagnostico.estado) {
+        elementoEstadoGlobal.classList.add(`estado-${diagnostico.estado.toLowerCase()}`);
+    }
 
 
     /*
-     * Estados individuales.
+     * Estados individuales: el backend los entrega como una
+     * lista de parámetros, cada uno con su propio estado.
      */
-    mostrarEstado(
-        "estado-humedad",
-        diagnostico.humedad
-    );
+    const idPorNombre = {
+        humedad: "estado-humedad",
+        luz: "estado-luz",
+        temperatura: "estado-temperatura"
+    };
 
-    mostrarEstado(
-        "estado-luz",
-        diagnostico.luz
-    );
+    (diagnostico.parametros ?? []).forEach((parametro) => {
+        const idElemento = idPorNombre[parametro.nombre.toLowerCase()];
 
-    mostrarEstado(
-        "estado-temperatura",
-        diagnostico.temperatura
-    );
+        if (idElemento) {
+            mostrarEstado(idElemento, parametro.estado);
+        }
+    });
 
 
     /*
@@ -337,11 +365,26 @@ function mostrarRecomendaciones(recomendaciones) {
 
 
     /*
-     * Permite trabajar inicialmente con un objeto de
-     * recomendaciones por parámetro.
-     *
-     * La estructura definitiva se ajustará al contrato
-     * del backend.
+     * El backend actual (EvaluadorDiagnostico) devuelve un
+     * único texto fijo por estado global, no uno por parámetro
+     * (simplificación documentada en la bitácora de IA).
+     */
+    if (typeof recomendaciones === "string") {
+
+        const elemento = document.createElement("div");
+
+        elemento.className = "recomendacion";
+        elemento.textContent = recomendaciones;
+
+        contenedor.appendChild(elemento);
+
+        return;
+    }
+
+
+    /*
+     * Soporta también un objeto de recomendaciones por
+     * parámetro, por si el backend evoluciona hacia eso.
      */
     if (
         typeof recomendaciones === "object" &&
@@ -386,6 +429,17 @@ function mostrarRecomendaciones(recomendaciones) {
         });
 
     }
+
+}
+
+
+/*
+ * Pone en mayúscula la primera letra (para mostrar el
+ * nombre de una especie en el selector).
+ */
+function capitalizar(texto) {
+
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
 
 }
 

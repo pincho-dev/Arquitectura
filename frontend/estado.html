@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Estado de la API</title>
+
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/estado.css">
+</head>
+
+<body>
+
+    <main class="contenedor">
+
+        <header class="encabezado">
+            <p class="etiqueta">MATERA INTELIGENTE</p>
+
+            <h1>Estado de la API</h1>
+
+            <p class="descripcion">
+                Monitoreo en vivo de las solicitudes que llegan al backend.
+                Esta página es un cliente estático independiente más: consulta
+                <code>GET /estado</code> cada par de segundos, igual que el
+                front principal consulta <code>/especies</code> y
+                <code>/diagnostico</code>.
+            </p>
+        </header>
+
+
+        <section class="tarjeta">
+
+            <div class="estado-servicio">
+                <span id="punto-actividad" class="punto-actividad"></span>
+
+                <div>
+                    <h2 id="titulo-servicio">Conectando con la API...</h2>
+                    <p id="detalle-servicio" class="texto-ayuda">—</p>
+                </div>
+            </div>
+
+        </section>
+
+
+        <section class="tarjeta">
+
+            <h2>Solicitudes recientes</h2>
+
+            <div id="lista-solicitudes" class="lista-solicitudes">
+                <p class="texto-ayuda">Todavía no hay solicitudes registradas.</p>
+            </div>
+
+        </section>
+
+
+        <footer class="pie">
+            <p>
+                Cliente web independiente — no genera HTML en el backend (RA1).
+            </p>
+        </footer>
+
+    </main>
+
+
+    <script src="js/estado.js"></script>
+
+</body>
+</html>
