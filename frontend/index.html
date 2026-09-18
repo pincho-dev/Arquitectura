@@ -1,168 +1,280 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Diagnóstico de plantas</title>
+    <title>Matera Inteligente | Diagnóstico</title>
 
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
 
-    <main class="contenedor">
+    <main class="dashboard">
 
-        <header class="encabezado">
-            <p class="etiqueta">MATERA INTELIGENTE</p>
+        <header class="topbar">
 
-            <h1>Sistema de diagnóstico de plantas</h1>
+            <div class="brand">
+                <div class="brand-icon">🌱</div>
 
-            <p class="descripcion">
-                Ingresa las condiciones actuales de la planta para consultar
-                su diagnóstico.
-            </p>
+                <div>
+                    <span class="brand-small">MATERA INTELIGENTE</span>
+                    <h1>Diagnóstico de planta</h1>
+                </div>
+            </div>
+
+            <div class="status">
+                <span class="status-dot"></span>
+                Sistema de diagnóstico
+            </div>
+
         </header>
 
 
-        <section class="tarjeta">
+        <section class="welcome">
 
-            <h2>Datos de la medición</h2>
+            <div>
+                <span class="section-label">MONITOREO VEGETAL</span>
 
-            <form id="diagnostico-form">
+                <h2>
+                    Conoce el estado actual
+                    <br>
+                    de tu planta
+                </h2>
 
-                <div class="campo campo-especie">
-                    <label for="especie">Especie</label>
+                <p>
+                    Ingresa las condiciones actuales de la planta
+                    para obtener un diagnóstico basado en sus
+                    parámetros de referencia.
+                </p>
+            </div>
 
-                    <select id="especie" name="especie" required>
-                        <option value="">
-                            Cargando especies...
-                        </option>
-                    </select>
+            <div class="plant-decoration">
+                🌿
+            </div>
 
-                    <small id="estado-especies" class="texto-ayuda">
-                        Las especies se cargarán desde la API.
-                    </small>
+        </section>
+
+
+        <!-- PANEL DE MEDICIONES -->
+        <section class="measurements">
+
+            <div class="section-heading">
+
+                <div>
+                    <span class="section-label">01 / MEDICIONES</span>
+                    <h3>Condiciones actuales</h3>
                 </div>
 
+                <div class="species-box">
 
-                <div class="grupo-campos">
+                    <label for="especie">ESPECIE</label>
 
-                    <div class="campo">
-                        <label for="humedad">
-                            Humedad del sustrato (%)
-                        </label>
+                    <select id="especie">
+                        <option value="">Cargando especies...</option>
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="measurement-grid">
+
+                <!-- HUMEDAD -->
+                <article class="measurement-card humidity">
+
+                    <div class="card-top">
+                        <span class="measurement-icon">💧</span>
+                        <span class="measurement-name">
+                            HUMEDAD
+                        </span>
+                    </div>
+
+                    <div class="measurement-input">
 
                         <input
                             type="number"
                             id="humedad"
-                            name="humedad"
-                            step="any"
-                            placeholder="Ej. 55"
-                            required
+                            placeholder="00"
+                            min="0"
                         >
+
+                        <span>%</span>
+
                     </div>
 
+                    <p>
+                        Humedad del sustrato
+                    </p>
 
-                    <div class="campo">
-                        <label for="luz">
-                            Nivel de luz (lux)
-                        </label>
+                </article>
+
+
+                <!-- LUZ -->
+                <article class="measurement-card light">
+
+                    <div class="card-top">
+                        <span class="measurement-icon">☀️</span>
+                        <span class="measurement-name">
+                            LUZ
+                        </span>
+                    </div>
+
+                    <div class="measurement-input">
 
                         <input
                             type="number"
                             id="luz"
-                            name="luz"
-                            step="any"
-                            placeholder="Ej. 12000"
-                            required
+                            placeholder="0000"
+                            min="0"
                         >
+
+                        <span>lux</span>
+
                     </div>
 
+                    <p>
+                        Intensidad luminosa
+                    </p>
 
-                    <div class="campo">
-                        <label for="temperatura">
-                            Temperatura (°C)
-                        </label>
+                </article>
+
+
+                <!-- TEMPERATURA -->
+                <article class="measurement-card temperature">
+
+                    <div class="card-top">
+                        <span class="measurement-icon">🌡️</span>
+                        <span class="measurement-name">
+                            TEMPERATURA
+                        </span>
+                    </div>
+
+                    <div class="measurement-input">
 
                         <input
                             type="number"
                             id="temperatura"
-                            name="temperatura"
-                            step="any"
-                            placeholder="Ej. 24"
-                            required
+                            placeholder="00"
+                            step="0.1"
                         >
+
+                        <span>°C</span>
+
                     </div>
 
-                </div>
+                    <p>
+                        Temperatura ambiente
+                    </p>
+
+                </article>
+
+            </div>
 
 
-                <div id="mensaje-formulario" class="mensaje oculto"></div>
+            <div class="action-area">
 
-
-                <button type="submit" id="boton-diagnostico">
-                    Consultar diagnóstico
+                <button
+                    id="boton-diagnostico"
+                    type="button"
+                >
+                    <span>Analizar planta</span>
+                    <span class="arrow">→</span>
                 </button>
 
-            </form>
+            </div>
 
         </section>
 
 
+        <!-- RESULTADO -->
         <section
             id="resultado"
-            class="resultado oculto"
-            aria-live="polite"
+            class="diagnosis-section hidden"
         >
 
-            <div class="resultado-cabecera">
+            <div class="section-heading">
 
-                <p class="etiqueta">RESULTADO</p>
+                <div>
+                    <span class="section-label">
+                        02 / DIAGNÓSTICO
+                    </span>
 
-                <h2>Diagnóstico de la planta</h2>
-
-                <div id="indice-vitalidad" class="vitalidad">
-                    -
+                    <h3>
+                        Resultado del análisis
+                    </h3>
                 </div>
 
             </div>
 
 
-            <div class="parametros">
+            <!-- ESTADO GENERAL -->
+            <div class="vitality-card">
 
-                <article class="parametro">
+                <div>
 
-                    <div class="parametro-icono">💧</div>
+                    <span class="result-label">
+                        ÍNDICE DE VITALIDAD
+                    </span>
+
+                    <h2 id="indice-vitalidad">
+                        --
+                    </h2>
+
+                </div>
+
+                <div
+                    id="estado-icon"
+                    class="vitality-icon"
+                >
+                    🌱
+                </div>
+
+            </div>
+
+
+            <!-- ESTADOS INDIVIDUALES -->
+            <div class="parameter-results">
+
+                <article class="result-card">
+
+                    <span>💧</span>
 
                     <div>
-                        <h3>Humedad</h3>
-                        <p id="estado-humedad">-</p>
+                        <small>HUMEDAD</small>
+                        <strong id="resultado-humedad">
+                            --
+                        </strong>
                     </div>
 
                 </article>
 
 
-                <article class="parametro">
+                <article class="result-card">
 
-                    <div class="parametro-icono">☀️</div>
+                    <span>☀️</span>
 
                     <div>
-                        <h3>Luz</h3>
-                        <p id="estado-luz">-</p>
+                        <small>LUZ</small>
+                        <strong id="resultado-luz">
+                            --
+                        </strong>
                     </div>
 
                 </article>
 
 
-                <article class="parametro">
+                <article class="result-card">
 
-                    <div class="parametro-icono">🌡️</div>
+                    <span>🌡️</span>
 
                     <div>
-                        <h3>Temperatura</h3>
-                        <p id="estado-temperatura">-</p>
+                        <small>TEMPERATURA</small>
+                        <strong id="resultado-temperatura">
+                            --
+                        </strong>
                     </div>
 
                 </article>
@@ -170,12 +282,21 @@
             </div>
 
 
-            <div class="recomendaciones">
+            <div class="recommendations">
 
-                <h3>Recomendaciones</h3>
+                <div class="recommendation-title">
+                    <span>💡</span>
+
+                    <div>
+                        <small>RECOMENDACIONES</small>
+                        <h3>Cuidados sugeridos</h3>
+                    </div>
+                </div>
 
                 <div id="lista-recomendaciones">
-                    <!-- Las recomendaciones llegan desde la API. -->
+                    <p>
+                        No hay recomendaciones disponibles.
+                    </p>
                 </div>
 
             </div>
@@ -183,32 +304,36 @@
         </section>
 
 
+        <!-- ERROR -->
         <section
-            id="error-api"
-            class="error-api oculto"
-            aria-live="assertive"
+            id="error"
+            class="error-box hidden"
         >
 
-            <div class="error-icono">!</div>
+            <span class="error-icon">⚠️</span>
 
             <div>
-                <h2>No fue posible realizar el diagnóstico</h2>
+                <strong>
+                    No fue posible realizar el diagnóstico
+                </strong>
 
                 <p id="mensaje-error">
-                    Ocurrió un error al comunicarse con el servicio.
+                    Ocurrió un error.
                 </p>
-
-                <p id="codigo-error" class="codigo-error"></p>
             </div>
 
         </section>
 
 
-        <footer class="pie">
+        <footer>
 
-            <p>
-                Cliente web independiente de la API de diagnóstico.
-            </p>
+            <span>
+                Matera Inteligente
+            </span>
+
+            <span>
+                Sistema de diagnóstico vegetal
+            </span>
 
         </footer>
 
@@ -219,4 +344,3 @@
 
 </body>
 </html>
-```
