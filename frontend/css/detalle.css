@@ -1,0 +1,200 @@
+:root {
+  --bg-main: #f7f9f6;
+  --card-bg: #ffffff;
+  --primary: #2c4935;
+  --text-dark: #1f2937;
+  --text-muted: #6b7280;
+  --border: #e7ebe6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  padding: 2rem 3rem;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.back-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: inline-block;
+  margin-bottom: 1.2rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.plant-title {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.plant-species {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.live-pill {
+  font-size: 0.8rem;
+  background-color: #e5ede5;
+  color: var(--primary);
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.sublink {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+
+.status-banner {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 1.8rem;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  margin-bottom: 2rem;
+}
+
+.status-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.subtitle-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.badge.en-riesgo {
+  background: #fef3c7;
+  color: #b45309;
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.status-desc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.metrics-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+.detail-metric-card {
+  background-color: #fafbfa;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.metric-head {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.metric-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.history-section {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 1.8rem;
+  border: 1px solid var(--border);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.2rem;
+}
+
+.history-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.source-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #f0f2f0;
+  font-size: 0.9rem;
+}
+
+th {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.polling-note {
+  margin-top: 1.5rem;
+  background-color: #f3f6f3;
+  padding: 0.9rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  color: #556052;
+}
+
+.polling-note code {
+  background: #e1e8e1;
+  padding: 2px 5px;
+  border-radius: 4px;
+}

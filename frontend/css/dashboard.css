@@ -1,0 +1,211 @@
+:root {
+  --bg-main: #f5f6f4;
+  --card-bg: #ffffff;
+  --primary: #2c4935;
+  --text-dark: #1f2937;
+  --text-muted: #6b7280;
+  --border: #edf0ec;
+  --status-green: #22c55e;
+  --status-red: #ef4444;
+  --status-yellow: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-dark);
+  padding: 1.5rem 2.5rem;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+
+.app-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.welcome-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.status-summary {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.8rem;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+  font-weight: 800;
+}
+
+.section-counter {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.add-plant-btn {
+  background-color: #e5ede5;
+  color: var(--primary);
+  border: none;
+  padding: 0.65rem 1.2rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.plants-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1.8rem;
+}
+
+.plant-card {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+}
+
+.plant-info {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.plant-icon {
+  font-size: 1.8rem;
+}
+
+.plant-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.plant-species {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.saludable { background: #e8f8ee; color: #15803d; }
+.badge.en-riesgo { background: #fef3c7; color: #b45309; }
+.badge.critico   { background: #fee2e2; color: #b91c1c; }
+.badge.sin-datos { background: #f3f4f6; color: #6b7280; }
+
+.metrics-box {
+  background-color: #fafbfa;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.9rem;
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border-right: 1px solid var(--border);
+}
+
+.metric-item:last-child {
+  border-right: none;
+}
+
+.metric-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.metric-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.esp-status {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.esp-status.link-action {
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.history-link {
+  color: var(--text-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
