@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Detalle Planta</title>
+  <link rel="stylesheet" href="detalle.css">
+</head>
+<body>
+  <div class="container">
+    <a href="dashboard.html" class="back-link">← Mis plantas</a>
+
+    <header class="detail-header">
+      <div>
+        <h1 class="plant-title" id="plant-title">Monstera 1</h1>
+        <p class="plant-species" id="plant-species">Monstera deliciosa</p>
+      </div>
+      <div class="header-actions">
+        <span class="live-pill">📡 ESP32-01 · en vivo</span>
+        <a href="vincular.html" class="sublink">Vincular otro dispositivo</a>
+      </div>
+    </header>
+
+    <!-- Estado Actual y Banner -->
+    <section class="status-banner">
+      <div class="status-banner-header">
+        <span class="subtitle-tag">ESTADO ACTUAL</span>
+        <span class="badge en-riesgo" id="status-badge">En riesgo</span>
+      </div>
+      <p class="status-desc" id="status-desc">
+        Humedad por debajo del rango recomendado para la especie desde hace 40 minutos.
+      </p>
+
+      <div class="metrics-cards-grid">
+        <div class="detail-metric-card">
+          <span class="metric-head">💧 HUMEDAD</span>
+          <span class="metric-value" id="current-humidity">34%</span>
+        </div>
+        <div class="detail-metric-card">
+          <span class="metric-head">☀️ LUZ</span>
+          <span class="metric-value" id="current-light">410 lux</span>
+        </div>
+        <div class="detail-metric-card">
+          <span class="metric-head">🌡️ TEMPERATURA</span>
+          <span class="metric-value" id="current-temp">23°C</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historial y Tabla -->
+    <section class="history-section">
+      <div class="history-header">
+        <div>
+          <span class="subtitle-tag">HISTORIAL</span>
+          <h2 class="history-title">Últimas lecturas</h2>
+        </div>
+        <span class="source-hint">Origen: formulario o dispositivo</span>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Humedad</th>
+              <th>Luz</th>
+              <th>Temp.</th>
+              <th>Origen</th>
+            </tr>
+          </thead>
+          <tbody id="readings-table-body">
+            <!-- Lecturas -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="polling-note">
+        El front se actualiza solo con una consulta periódica a <code>GET /api/plantas/{id}/estado</code> cada pocos segundos (sin WebSockets, según R6 del enunciado)
+      </div>
+    </section>
+  </div>
+
+  <script src="detalle.js"></script>
+</body>
+</html>

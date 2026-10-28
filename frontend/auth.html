@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Iniciar Sesión</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <div class="auth-card">
+    <div class="brand-header">
+      <div class="brand-icon">🌱</div>
+      <div>
+        <span class="brand-subtitle">MATERA INTELIGENTE</span>
+        <h1 id="form-title" class="brand-title">Iniciar sesión</h1>
+      </div>
+    </div>
+
+    <!-- Pestañas de modo -->
+    <div class="tab-container">
+      <button id="tab-login" class="tab-btn active" type="button">Iniciar sesión</button>
+      <button id="tab-register" class="tab-btn" type="button">Crear cuenta</button>
+    </div>
+
+    <form id="auth-form">
+      <div class="form-group">
+        <label for="email">CORREO</label>
+        <input type="email" id="email" placeholder="tu@correo.com" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">CONTRASEÑA</label>
+        <input type="password" id="password" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" id="submit-btn" class="submit-btn">
+        <span>Entrar</span>
+        <span class="arrow">→</span>
+      </button>
+    </form>
+
+    <p class="auth-footer-note">
+      Autenticación JWT · cada usuario solo ve sus propias plantas
+    </p>
+  </div>
+
+  <script src="auth.js"></script>
+</body>
+</html>

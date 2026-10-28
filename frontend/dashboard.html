@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-left">
+      <span class="app-tag">MATERA INTELIGENTE</span>
+      <h2 class="welcome-text">Hola, Julián</h2>
+    </div>
+    <div class="nav-right">
+      <span class="status-summary">📡 3 dispositivos conectados</span>
+      <button class="logout-btn" id="logout-btn">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">MIS PLANTAS</h1>
+        <p class="section-counter" id="plantas-counter">4 plantas registradas</p>
+      </div>
+      <button class="add-plant-btn">+ Nueva planta</button>
+    </div>
+
+    <!-- Cuadrícula de tarjetas -->
+    <section class="plants-grid" id="plants-grid">
+      <!-- Se inyecta dinámicamente o se renderiza con plantillas -->
+    </section>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
