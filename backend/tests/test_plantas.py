@@ -7,12 +7,13 @@ import pytest
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
 from application.crear_planta import CrearPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
+from application.compartir_planta import CompartirPlanta
 from application.materas import FabricarMatera, ReclamarMatera
 from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
 from domain.modelos import RangosEspecie, ValorFueraDeRangoFisico
 from domain.plantas import (
-    AccesoDenegado, ClaveDeReclamoInvalida, DatosDePlantaInvalidos, Dispositivo, LecturaDuplicada,
+    AccesoDenegado, ClaveDeReclamoInvalida, DatosDePlantaInvalidos, Dispositivo, InvitadoNoRegistrado, LecturaDuplicada,
     MateraSinDueno, MateraYaReclamada, Planta, PlantaNoEncontrada,
 )
 from domain.puertos import (
@@ -20,6 +21,7 @@ from domain.puertos import (
     RepositorioDispositivos, RepositorioPlantas,
 )
 from domain.valores import Rango
+from tests.test_autenticacion import _RepositorioUsuariosFalso
 
 DUENA, AJENO = 1, 2
 AHORA = datetime(2026, 10, 30, 12, 0, tzinfo=timezone.utc)
@@ -50,6 +52,10 @@ class _RepositorioPlantasFalso(RepositorioPlantas):
 
     def eliminar(self, planta_id):
         self.plantas.pop(planta_id, None)
+
+    def agregar_dueno(self, planta_id, usuario_id):
+        planta = self.plantas[planta_id]
+        self.plantas[planta_id] = Planta(planta.id, planta.nombre, planta.especie, planta.duenos | {usuario_id})
 
 
 class _HistorialFalso(HistorialLecturas):
@@ -325,3 +331,90 @@ def test_una_matera_reclamada_no_la_puede_reclamar_otro_usuario(fabrica):
     with pytest.raises(MateraYaReclamada):
         fabrica["reclamar"].ejecutar(AJENO, "MAT-01", "clave-sticker")
     assert fabrica["plantas"].listar_de_usuario(AJENO) == []
+
+
+# ------------------------------------------------------- compartir planta
+
+TERCERO = 3
+
+
+@pytest.fixture
+def compartida():
+    plantas, historial, dispositivos = _RepositorioPlantasFalso(), _HistorialFalso(), _RepositorioDispositivosFalso()
+    usuarios = _RepositorioUsuariosFalso()
+    for nombre in ("duena", "ajeno", "tercero"):
+        usuarios.crear(nombre, f"{nombre}@correo.com", "hash")  # ids 1, 2, 3
+    diagnosticar = DiagnosticarPlanta(_EspecieLookupFalso())
+    return {
+        "planta": plantas.crear("Potos sala", "potos", DUENA),
+        "compartir": CompartirPlanta(plantas, usuarios),
+        "consultar": ConsultarEstadoPlanta(plantas, historial, dispositivos, diagnosticar),
+        "listar": ListarPlantas(plantas, historial, dispositivos, diagnosticar),
+        "registrar": RegistrarLectura(plantas, historial, diagnosticar),
+        "usuarios": usuarios,
+    }
+
+
+def test_el_dueno_comparte_y_el_invitado_ve_la_planta(compartida):
+    planta_id = compartida["planta"].id
+
+    planta = compartida["compartir"].ejecutar(DUENA, planta_id, " AJENO@correo.com ")
+
+    assert planta.duenos == frozenset({DUENA, AJENO})
+    assert compartida["consultar"].ejecutar(AJENO, planta_id).planta.nombre == "Potos sala"
+    assert [r.planta.id for r in compartida["listar"].ejecutar(AJENO)] == [planta_id]
+
+
+def test_el_co_dueno_tambien_puede_registrar_lecturas(compartida):
+    compartida["compartir"].ejecutar(DUENA, compartida["planta"].id, "ajeno@correo.com")
+
+    diagnostico = compartida["registrar"].desde_formulario(AJENO, compartida["planta"].id, 55, 500, 22, AHORA)
+
+    assert diagnostico.estado == "SALUDABLE"
+
+
+def test_compartir_no_le_da_acceso_a_un_tercero(compartida):
+    compartida["compartir"].ejecutar(DUENA, compartida["planta"].id, "ajeno@correo.com")
+
+    with pytest.raises(AccesoDenegado):
+        compartida["consultar"].ejecutar(TERCERO, compartida["planta"].id)
+
+
+def test_quien_no_es_dueno_no_puede_compartir(compartida):
+    with pytest.raises(AccesoDenegado):
+        compartida["compartir"].ejecutar(AJENO, compartida["planta"].id, "tercero@correo.com")
+
+
+def test_un_co_dueno_puede_volver_a_compartir(compartida):
+    planta_id = compartida["planta"].id
+    compartida["compartir"].ejecutar(DUENA, planta_id, "ajeno@correo.com")
+
+    planta = compartida["compartir"].ejecutar(AJENO, planta_id, "tercero@correo.com")
+
+    assert planta.duenos == frozenset({DUENA, AJENO, TERCERO})
+
+
+def test_compartir_dos_veces_con_la_misma_persona_no_duplica(compartida):
+    planta_id = compartida["planta"].id
+    compartida["compartir"].ejecutar(DUENA, planta_id, "ajeno@correo.com")
+
+    planta = compartida["compartir"].ejecutar(DUENA, planta_id, "ajeno@correo.com")
+
+    assert planta.duenos == frozenset({DUENA, AJENO})
+
+
+def test_compartir_con_correo_no_registrado_falla(compartida):
+    with pytest.raises(InvitadoNoRegistrado):
+        compartida["compartir"].ejecutar(DUENA, compartida["planta"].id, "nadie@correo.com")
+
+
+def test_compartir_con_cuenta_inactiva_falla(compartida):
+    compartida["usuarios"].por_email["ajeno@correo.com"].activo = False
+
+    with pytest.raises(InvitadoNoRegistrado):
+        compartida["compartir"].ejecutar(DUENA, compartida["planta"].id, "ajeno@correo.com")
+
+
+def test_compartir_planta_inexistente_falla(compartida):
+    with pytest.raises(PlantaNoEncontrada):
+        compartida["compartir"].ejecutar(DUENA, 999, "ajeno@correo.com")

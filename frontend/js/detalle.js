@@ -36,6 +36,11 @@ function renderizarDetalle(data) {
     pill.textContent = `📡 ${dispositivo.codigo} · ${dispositivo.conectado ? 'en vivo' : 'desconectado'}`;
   }
 
+  const otros = data.cantidad_duenos - 1;
+  document.getElementById('share-owners').textContent = otros === 0
+    ? 'Solo tú puedes ver esta planta.'
+    : `Compartida con ${otros} ${otros === 1 ? 'persona más' : 'personas más'}.`;
+
   const tbody = document.getElementById('readings-table-body');
   tbody.innerHTML = '';
   data.historial.forEach(r => {
@@ -52,6 +57,7 @@ function renderizarDetalle(data) {
 }
 
 function mostrarError(mensaje) {
+  document.querySelector('.share-section').hidden = true;
   document.getElementById('plant-title').textContent = 'No disponible';
   document.getElementById('status-desc').textContent = mensaje;
 }
@@ -67,7 +73,25 @@ async function actualizar() {
   }
 }
 
+async function compartir(e) {
+  e.preventDefault();
+  const input = document.getElementById('share-email');
+  const msg = document.getElementById('share-msg');
+  try {
+    await api(`/plantas/${PLANTA_ID}/duenos`, { metodo: 'POST', cuerpo: { correo: input.value.trim() } });
+    msg.className = 'share-msg ok';
+    msg.textContent = `Listo: ${input.value.trim()} ya puede ver esta planta y sus lecturas.`;
+    input.value = '';
+    actualizar();
+  } catch (err) {
+    msg.className = 'share-msg error';
+    msg.textContent = err.message;
+  }
+  msg.hidden = false;
+}
+
 if (Sesion.exigir()) {
+  document.getElementById('share-form').addEventListener('submit', compartir);
   document.getElementById('vincular-link').href = `vincular.html?planta_id=${PLANTA_ID}`;
   actualizar().then(seguir => {
     if (!seguir) return;

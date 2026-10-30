@@ -5,7 +5,7 @@ from flask import Blueprint, g, jsonify, request
 from domain.modelos import ValorFueraDeRangoFisico
 from domain.plantas import (
     AccesoDenegado, ClaveDeReclamoInvalida, CodigoDispositivoEnUso, DatosDePlantaInvalidos,
-    MateraYaReclamada, PlantaNoEncontrada,
+    InvitadoNoRegistrado, MateraYaReclamada, PlantaNoEncontrada,
 )
 from domain.puertos import EspecieNoEncontrada
 from presentation.http import ErrorDeEntrada, ahora_utc, error_json, leer_medicion, leer_objeto, leer_texto
@@ -20,7 +20,7 @@ TEXTO_ESTADO = {
 
 
 def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_lectura,
-                      vincular_dispositivo, reclamar_matera, requiere_usuario):
+                      vincular_dispositivo, reclamar_matera, compartir_planta, requiere_usuario):
     api = Blueprint("plantas", __name__, url_prefix="/api/plantas")
 
     @api.errorhandler(ErrorDeEntrada)
@@ -58,6 +58,10 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     @api.errorhandler(MateraYaReclamada)
     def _ya_reclamada(e):
         return error_json("MATERA_YA_RECLAMADA", str(e), 409, campo="codigo")
+
+    @api.errorhandler(InvitadoNoRegistrado)
+    def _invitado_no_registrado(e):
+        return error_json("USUARIO_NO_ENCONTRADO", str(e), 404, campo="correo")
 
     @api.route("", methods=["GET"])
     @requiere_usuario
@@ -100,6 +104,13 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
         diagnostico = registrar_lectura.desde_formulario(g.usuario_id, planta_id, medida_en=ahora_utc(), **valores)
         return jsonify(_diagnostico_json(diagnostico)), 201
 
+    @api.route("/<int:planta_id>/duenos", methods=["POST"])
+    @requiere_usuario
+    def compartir(planta_id):
+        datos = leer_objeto(request.get_json(silent=True))
+        planta = compartir_planta.ejecutar(g.usuario_id, planta_id, leer_texto(datos, "correo"))
+        return jsonify({**_planta_json(planta), "cantidad_duenos": len(planta.duenos)})
+
     @api.route("/<int:planta_id>/dispositivos", methods=["POST"])
     @requiere_usuario
     def vincular(planta_id):
@@ -116,6 +127,30 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     return api
 
 
+def crear_api_mis_dispositivos(listar_plantas, requiere_usuario):
+    """GET /api/dispositivos: todas las materas del usuario (las suyas y las
+    de plantas compartidas con él). Reutiliza ListarPlantas: es solo otra
+    vista de los mismos datos, no un caso de uso nuevo."""
+    api = Blueprint("mis_dispositivos", __name__, url_prefix="/api/dispositivos")
+
+    @api.route("", methods=["GET"])
+    @requiere_usuario
+    def listar():
+        ahora = ahora_utc()
+        return jsonify([
+            {
+                "codigo": d.codigo,
+                "conectado": d.esta_conectado(ahora),
+                "ultima_conexion": d.ultima_conexion.isoformat() if d.ultima_conexion else None,
+                "planta": _planta_json(resumen.planta),
+            }
+            for resumen in listar_plantas.ejecutar(g.usuario_id)
+            for d in resumen.dispositivos
+        ])
+
+    return api
+
+
 def _planta_json(planta):
     return {"id": planta.id, "nombre": planta.nombre, "especie": planta.especie}
 
@@ -125,6 +160,7 @@ def _resumen_json(resumen, ahora):
     ultima = resumen.ultima_lectura
     return {
         **_planta_json(resumen.planta),
+        "cantidad_duenos": len(resumen.planta.duenos),
         "estado": estado,
         "estado_texto": TEXTO_ESTADO[estado],
         "recomendaciones": resumen.diagnostico.recomendaciones if resumen.diagnostico else None,

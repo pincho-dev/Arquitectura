@@ -62,7 +62,10 @@ La API queda disponible en `http://localhost:5000`.
 | `POST /api/plantas` | JWT usuario | `{nombre, especie}` |
 | `GET /api/plantas/{id}/estado` | JWT usuario | Estado, última lectura e historial (403 si la planta es ajena) |
 | `POST /api/plantas/{id}/lecturas` | JWT usuario | Lectura manual desde el formulario |
+| `POST /api/plantas/{id}/duenos` | JWT usuario | `{correo}`: comparte la planta con otro usuario registrado (solo un dueño puede) |
+| `POST /api/plantas/reclamar` | JWT usuario | `{codigo, clave}` del sticker NFC: la matera y su planta pasan a ser del usuario |
 | `POST /api/plantas/{id}/dispositivos` | JWT usuario | `{codigo}` → token del dispositivo (se muestra una sola vez) |
+| `GET /api/dispositivos` | JWT usuario | Materas del usuario (propias y compartidas) con su planta y si están conectadas |
 | `POST /api/dispositivos/{codigo}/lecturas` | Token de dispositivo | `{dispositivo, medida_en, humedad, luz, temperatura}` |
 | `POST /diagnostico`, `GET /especies` | — | Endpoints de la fase 1 |
 

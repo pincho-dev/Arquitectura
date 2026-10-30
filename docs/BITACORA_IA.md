@@ -167,6 +167,11 @@
 - **Propuso la IA:** el patrón de "clave de reclamo": la matera sale de fábrica sin dueño (`flask fabricar-matera`), con su token en el firmware y una URL `reclamar.html?codigo=…&clave=…` en el sticker; mientras nadie la reclame, el dominio rechaza sus lecturas (`MateraSinDueno`); el reclamo es atómico (un solo dueño). El simulador con `--tocar-nfc` abre esa URL como lo haría el teléfono. Conectó todo el front a la API real.
 - **Se aceptó / cambió:** Julián pidió que la planta se agregue directamente, sin pasos extra: la especie sale del kit de fábrica y el nombre por defecto es "Matera <código>". Probado en el navegador: registro → vuelta al sticker → planta agregada → lecturas en vivo → planta ajena bloqueada.
 
+### 8. Compartir plantas entre usuarios y endpoint para ver los ESP
+- **Se pidió (Julián):** comprobar que un usuario pueda compartir una planta (decisión de diseño del 2026-09-30: plantas con varios dueños) y probarlo en el navegador con los ESP simulados; también si había un endpoint para ver los ESP.
+- **Propuso la IA:** señaló que la BD y el dominio ya soportaban varios dueños, pero **no existía forma de compartir** (no estaba implementado). Agregó el caso de uso `CompartirPlanta` (solo un dueño puede compartir; el invitado debe estar registrado; compartir dos veces no duplica), `POST /api/plantas/{id}/duenos`, la sección "Compartir" en el detalle de la planta y `GET /api/dispositivos`.
+- **Se aceptó / cambió:** aceptado. Probado en el navegador con una matera simulada transmitiendo: Ana comparte con Brian → Brian la ve en vivo y puede registrar lecturas; un tercero sigue recibiendo 403; correo no registrado da error claro.
+
 ---
 
 ## Pendientes abiertos (para no perderlos)

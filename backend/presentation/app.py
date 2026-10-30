@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
+from application.compartir_planta import CompartirPlanta
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
 from application.crear_planta import CrearPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
@@ -31,7 +32,7 @@ from domain.puertos import EspecieNoEncontrada
 from application.listar_especies import ListarEspecies
 from presentation.api_auth import crear_api_auth
 from presentation.api_dispositivos import crear_api_dispositivos
-from presentation.api_plantas import crear_api_plantas
+from presentation.api_plantas import crear_api_mis_dispositivos, crear_api_plantas
 from presentation.cli_fabrica import registrar_cli_fabrica
 from presentation.seguridad import crear_requiere_usuario
 
@@ -74,15 +75,19 @@ repositorio_dispositivos = RepositorioDispositivosBd(engine)
 generador_tokens_dispositivo = GeneradorTokensDispositivoAleatorio()
 registrar_lectura = RegistrarLectura(repositorio_plantas, historial_lecturas, caso_de_uso)
 
+listar_plantas = ListarPlantas(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso)
+
 app.register_blueprint(crear_api_plantas(
-    ListarPlantas(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso),
+    listar_plantas,
     ConsultarEstadoPlanta(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso),
     CrearPlanta(repositorio_plantas),
     registrar_lectura,
     VincularDispositivo(repositorio_plantas, repositorio_dispositivos, generador_tokens_dispositivo),
     ReclamarMatera(repositorio_dispositivos, repositorio_plantas),
+    CompartirPlanta(repositorio_plantas, repositorio_usuarios),
     requiere_usuario,
 ))
+app.register_blueprint(crear_api_mis_dispositivos(listar_plantas, requiere_usuario))
 
 # Fábrica simulada (flask fabricar-matera): otro adaptador de entrada, por consola.
 registrar_cli_fabrica(

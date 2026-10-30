@@ -78,3 +78,10 @@ class ReclamarMateraPort(ABC):
         """El usuario se vuelve dueño de la matera: crea su planta y le asigna
         el dispositivo. Devuelve (Planta, Dispositivo)."""
         pass
+
+class CompartirPlantaPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, planta_id, correo_invitado):
+        """Un dueño agrega a otro usuario registrado como co-dueño.
+        Devuelve la Planta actualizada. Lanza AccesoDenegado, InvitadoNoRegistrado."""
+        pass

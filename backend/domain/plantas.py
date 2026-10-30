@@ -28,6 +28,9 @@ class MateraYaReclamada(Exception):
 class MateraSinDueno(Exception):
     pass
 
+class InvitadoNoRegistrado(Exception):
+    pass
+
 class DatosDePlantaInvalidos(Exception):
     def __init__(self, mensaje, campo=None):
         super().__init__(mensaje)

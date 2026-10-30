@@ -1,4 +1,5 @@
 from sqlalchemy import delete, func, insert, select
+from sqlalchemy.dialects.postgresql import insert as insert_pg
 
 from domain.plantas import Planta
 from domain.puertos import EspecieNoEncontrada, RepositorioPlantas
@@ -34,6 +35,15 @@ class RepositorioPlantasBd(RepositorioPlantas):
     def eliminar(self, planta_id):
         with self.engine.begin() as conexion:
             conexion.execute(delete(plantas).where(plantas.c.id == planta_id))
+
+    def agregar_dueno(self, planta_id, usuario_id):
+        # ON CONFLICT DO NOTHING: compartir dos veces con la misma persona no falla.
+        with self.engine.begin() as conexion:
+            conexion.execute(
+                insert_pg(usuario_planta)
+                .values(usuario_id=usuario_id, planta_id=planta_id)
+                .on_conflict_do_nothing()
+            )
 
     def _consultar(self, filtro):
         consulta = (

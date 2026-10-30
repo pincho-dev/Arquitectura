@@ -59,6 +59,11 @@ class RepositorioPlantas(ABC):
     def eliminar(self, planta_id):
         pass
 
+    @abstractmethod
+    def agregar_dueno(self, planta_id, usuario_id):
+        """No hace nada si el usuario ya es dueño."""
+        pass
+
 class HistorialLecturas(ABC):
     @abstractmethod
     def guardar(self, lectura):
