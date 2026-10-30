@@ -114,12 +114,31 @@
 
 ---
 
+## Sesión 2026-09-30
+
+### 1. Ampliación de alcance: gestión de usuarios y autenticación (indicación verbal del profesor)
+- **Se pidió:** hablar de gestión de usuarios/autenticación para el backend, aclarando que el profesor indicó en clase (no reflejado aún en el enunciado escrito) que el equipo debería tener al menos la gestión de usuarios implementada — ampliando lo que la sección 2 del enunciado marca como "No entra" en este corte. También se pidió explicar autenticación con tokens, funciones hash y qué es un "secreto", y qué son los WebSockets: temas de una clase a la que Julián no pudo asistir.
+- **Propuso la IA:** señaló explícitamente la contradicción con la sección 2 del enunciado (*"Autenticación y gestión de usuarios"* está en la columna *"No entra"*) antes de avanzar, para dejarlo documentado de cara a la sustentación. Aclarado que es indicación verbal del profesor, explicó sin código: el flujo de autenticación con JWT (login → verificación de contraseña → token firmado → cliente lo reenvía → servidor verifica firma), la diferencia entre hash lento+salteado para contraseñas (bcrypt/argon2) vs. HMAC rápido para firmar tokens, qué es el `SECRET_KEY` y por qué vive solo en `.env` del servidor, y qué son los WebSockets (conexión persistente bidireccional vs. petición-respuesta de HTTP), con dos usos concretos para este proyecto: reemplazar el polling de 2s del panel `/estado` por push en tiempo real, y a futuro empujar mediciones del ESP32/MQTT al front sin polling. Remarcó que la autenticación es un *concern* transversal (`presentation/`+`infrastructure/`), no lógica del dominio de diagnóstico — el dominio (`Rango`, `EvaluadorDiagnostico`, `Diagnostico`) no debe enterarse de que existen usuarios.
+- **Se aceptó / cambió:** se confirma que la gestión de usuarios se va a implementar de verdad en este corte, por pedido explícito (verbal) del profesor, pese a la letra del enunciado. **Pendiente para el equipo:** tener lista la justificación de por qué se implementó algo listado como "No entra", para la sustentación.
+
+### 2. Diseño de la base de datos para usuarios, roles, autenticación y plantas compartidas
+- **Se pidió:** diseñar juntos el esquema de base de datos para el backend de usuarios.
+- **Propuso la IA:** antes de proponer tablas, preguntó dos decisiones que cambian el esquema (motor de BD, y si el flujo de tokens es solo access token o access+refresh); dio ventajas/desventajas de SQLite vs. Postgres vs. MySQL para este proyecto específico (fricción de setup para el equipo/profesor, concurrencia, qué tan "producción" se ve, facilidad de migrar de motor después dado el precedente de la migración JSON→CSV). Con Postgres y access+refresh token elegidos, propuso: `usuarios` (id, nombre, email único, password_hash, creado_en, activo) y `refresh_tokens` (con `token_hash` — no el token crudo — e índice único, y campo `revocado` para poder invalidar sesiones), usando `timestamptz`/`bigserial` como detalles "de producción" en Postgres. Al pedir gestión de roles y confirmar que las plantas pueden tener varios dueños a la vez, rediseñó a dos relaciones muchos-a-muchos: `roles`+`usuario_roles` (permite agregar roles nuevos sin tocar esquema ni código) y `plantas`+`usuario_planta` (se le quitó `usuario_id` a `plantas`; ambas tablas intermedias con PK compuesta). Preguntó si los co-dueños de una planta tienen los mismos permisos o si hace falta un rol dentro de la relación `usuario_planta`.
+- **Se aceptó / cambió:** `nombre` obligatorio en `usuarios`; roles con tabla + asignación (no columna fija); plantas con dueños múltiples vía tabla intermedia; todos los co-dueños de una planta tienen los mismos permisos (no se agrega columna de rol en `usuario_planta`). Motor de base de datos: **PostgreSQL**, justificado explícitamente por buscar algo "lo más parecido a producción posible". Diseño de tablas cerrado en esta sesión — queda pendiente implementarlo (ver pendientes abiertos).
+
+---
+
 ## Pendientes abiertos (para no perderlos)
 - [x] ~~Decidir si se reutiliza `arquitectura_de_software/` o se abre una carpeta/repo nuevo~~ → resuelto: repo nuevo en `diagnostico-plantas/`.
 - [x] ~~Definir y justificar la regla de agregación de RF3 (qué combinación de BAJO/ALTO da CRITICO vs EN_RIESGO)~~ → resuelto en sesión 2026-09-16: desviación % relativa al límite, umbral leve 10%, umbral severo 50%.
 - [x] ~~Implementar `EvaluadorDiagnostico.evaluar()` en código~~ → resuelto: implementado por el equipo, con tests verdes.
 - [x] ~~RF6 (parámetro ausente / no numérico) devolvía 500 en vez de 400~~ → resuelto sesión 2026-09-18, ver punto 2 arriba.
-- [ ] Decidir esquema de BD final en dbdiagram.io (tabla plana vs normalizada) para `especies`/`rangos_referencia`, y motor concreto (Postgres/MySQL/otro) para completar `requirements.txt` y `DATABASE_URL`.
+- [x] ~~Decidir motor concreto de BD (Postgres/MySQL/otro)~~ → resuelto sesión 2026-09-30: **PostgreSQL**, decidido para el backend de usuarios/auth por buscar semejanza con producción.
+- [ ] Decidir si `especies`/`rangos_referencia` se queda en CSV o migra a la misma BD Postgres, y de normalizar, el esquema (tabla plana vs. `especies`+`rangos_referencia`).
 - [ ] Decidir si se modela histórico de mediciones en el diagrama especulativo de evolución.
 - [x] ~~El equipo de front iba a reemplazar el `<form>` por otro patrón de UI~~ → resuelto: ya llegó a `main` y se fusionó (sesión 2026-09-18, punto 6). Pendiente real: que el equipo de front revise por qué les sigue saliendo "índice de vitalidad" en el código que generan.
 - [ ] Justificar en el documento (6.b.6) la decisión de rutas propias (`/diagnostico`, `/especies`) en vez de las del Anexo A (`/api/v1/...`), y la forma del cuerpo de error elegida.
+- [ ] Implementar el esquema diseñado en la sesión 2026-09-30 (`usuarios`, `roles`, `usuario_roles`, `plantas`, `usuario_planta`, `refresh_tokens`) vía migraciones (Alembic/Flask-Migrate), no SQL a mano.
+- [ ] Elegir librería de JWT (ej. PyJWT) y definir tiempos de expiración de access token y refresh token.
+- [ ] Agregar a `requirements.txt` el driver de Postgres (`psycopg2`/`psycopg`) y la herramienta de migraciones elegida; completar `DATABASE_URL` (formato Postgres) y `SECRET_KEY` en `.env`/`.env.example` cuando se implemente.
+- [ ] Preparar para la sustentación la justificación de implementar gestión de usuarios/autenticación pese a estar listada como "No entra" en la sección 2 del enunciado (fue pedido verbal del profesor, sesión 2026-09-30).
