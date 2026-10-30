@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Mis dispositivos</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/dispositivos.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-left">
+      <span class="app-tag">MATERA INTELIGENTE</span>
+      <h2 class="welcome-text"><a href="dashboard.html" class="volver">← Mis plantas</a></h2>
+    </div>
+    <div class="nav-right">
+      <span class="status-summary" id="status-summary">📡 —</span>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">MIS DISPOSITIVOS</h1>
+        <p class="section-counter" id="dispositivos-counter">Cargando…</p>
+      </div>
+      <a class="add-plant-btn" href="reclamar.html">+ Agregar matera</a>
+    </div>
+
+    <div class="tabla-contenedor">
+      <table class="tabla-dispositivos">
+        <thead>
+          <tr><th>Estado</th><th>Código</th><th>Planta</th><th>Especie</th><th>Última conexión</th></tr>
+        </thead>
+        <tbody id="dispositivos-body"></tbody>
+      </table>
+    </div>
+    <p class="nota-conexion">Un dispositivo aparece conectado si envió una lectura en los últimos 2 minutos. La lista se actualiza sola cada 5 segundos.</p>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/dispositivos.js"></script>
+</body>
+</html>
