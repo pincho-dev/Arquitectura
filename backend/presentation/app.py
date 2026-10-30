@@ -1,20 +1,56 @@
 from collections import deque
 from datetime import datetime, timezone
+from pathlib import Path
 
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
 from application.diagnosticar_planta import DiagnosticarPlanta
+from application.iniciar_sesion import IniciarSesion
+from application.registrar_usuario import RegistrarUsuario
+from infrastructure.db.conexion import crear_engine
+from infrastructure.especie_lookup_bd import EspecieLookupBd
 from infrastructure.especie_lookup_csv import EspecieLookupCsv
+from infrastructure.hasher_bcrypt import HasherBcrypt
+from infrastructure.repositorio_usuarios_bd import RepositorioUsuariosBd
+from infrastructure.tokens_jwt import TokensJwt
 from domain.modelos import ValorFueraDeRangoFisico
 from domain.puertos import EspecieNoEncontrada
 from application.listar_especies import ListarEspecies
+from presentation.api_auth import crear_api_auth
+from presentation.seguridad import crear_requiere_usuario
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 app = Flask(__name__)
 CORS(app, origins=os.environ.get("CORS_ORIGIN", "*"))
 
-especie_lookup = EspecieLookupCsv()
+# ---- Punto de composición: único lugar donde se decide qué adaptador
+# ---- implementa cada puerto. El engine no abre conexión hasta usarse.
+engine = crear_engine()
+
+
+def _crear_tabla_referencia():
+    # R4: el adaptador se elige por configuración, el dominio y los casos de uso no cambian.
+    if os.environ.get("TABLA_REFERENCIA", "csv").lower() == "bd":
+        return EspecieLookupBd(engine)
+    return EspecieLookupCsv()
+
+
+tokens = TokensJwt(os.environ.get("JWT_SECRET"), int(os.environ.get("JWT_MINUTOS_VALIDEZ", "60")))
+repositorio_usuarios = RepositorioUsuariosBd(engine)
+hasher = HasherBcrypt()
+requiere_usuario = crear_requiere_usuario(tokens)
+
+app.register_blueprint(crear_api_auth(
+    RegistrarUsuario(repositorio_usuarios, hasher, tokens),
+    IniciarSesion(repositorio_usuarios, hasher, tokens),
+    requiere_usuario,
+))
+
+especie_lookup = _crear_tabla_referencia()
 caso_de_uso = DiagnosticarPlanta(especie_lookup)
 caso_de_uso_especies = ListarEspecies(especie_lookup)
 
