@@ -30,8 +30,7 @@ async function reclamar(codigo, clave) {
     mensaje.innerHTML = `¡Listo! <strong>${escaparHtml(planta.nombre)}</strong> (${escaparHtml(planta.especie)}) ya es tuya.`;
     setTimeout(() => { window.location.href = `detalle.html?id=${planta.id}`; }, 1500);
   } catch (err) {
-    document.getElementById('spinner').hidden = true;
-    mensaje.textContent = '';
+    vistaReclamo.hidden = true;
     if (err.codigo === 'MATERA_YA_RECLAMADA') {
       mostrarError('Esta matera ya pertenece a una cuenta. Si es tuya, la encuentras en "Mis plantas".');
     } else if (err.codigo === 'STICKER_INVALIDO') {

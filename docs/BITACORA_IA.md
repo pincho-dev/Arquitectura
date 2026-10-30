@@ -9,6 +9,7 @@
 - La IA **puede ayudarme hacer pruebas para agilizar el proceso**
 - La IA **sugiere, explica y ayuda a destrabar** cuando el equipo está atascado en una decisión o un concepto.
 - El código, las decisiones de diseño y el documento final los escribe el equipo, a partir de haber entendido las sugerencias — no copiándolas.
+- **Cambio de regla en la Fase 2 (2026-10-29):** el enunciado de la Fase 2 permite explícitamente usar IA para escribir código, y la entrega era al día siguiente. **Julián definió la arquitectura** (hexagonal sobre las capas de la fase 1, qué puertos y adaptadores, PostgreSQL, JWT, roles, plantas con varios dueños, materas con sticker NFC) y **la IA escribió gran parte del código** siguiendo esas decisiones. Lo que sigue prohibido, por el propio enunciado, es que la IA redacte el documento de arquitectura: lo escribe el equipo.
 
 ---
 
@@ -128,17 +129,60 @@
 
 ---
 
+## Sesión 2026-10-29 — Fase 2 (arquitectura hexagonal)
+
+> Reparto de esta sesión: **Julián definió la arquitectura y las decisiones de diseño; la IA escribió gran parte del código** (backend, migraciones, simulador, conexión del front y tests) y explicó cada pieza. Todo el código se probó contra PostgreSQL real y en el navegador.
+
+### 1. Lectura del enunciado de la Fase 2 y revisión de trampas
+- **Se pidió:** revisar el nuevo enunciado (`Enunciado_Matera_Fase2_Hexagonal.pdf`) y los mockups, buscando trampas como la nota ASW-4.2 de la fase 1.
+- **Propuso la IA:** analizó el PDF por dentro (colores, tamaños de letra, texto oculto, anotaciones, metadatos): no encontró trampas. Señaló diferencias entre el enunciado y el diseño del equipo (plantas con varios dueños vs. "cada planta pertenece a un usuario").
+- **Se aceptó / cambió:** el profesor aclaró que el enunciado es una **guía, no un paso a paso** (lo generó con IA). Se mantienen las decisiones propias del equipo cuando están justificadas (ej. varios dueños por planta).
+
+### 2. Merge con el nuevo front del equipo
+- **Se pidió:** traer los últimos cambios del front (`origin/main`).
+- **Propuso la IA:** merge fast-forward sin conflictos; detectó que las pantallas nuevas no cargaban su JS/CSS (rutas sin `js/` ni `css/`), que el login devolvía un token simulado y que había un token de dispositivo escrito a mano.
+- **Se aceptó / cambió:** se corrigió más adelante, al conectar el front (punto 7).
+
+### 3. Base de datos PostgreSQL
+- **Se pidió (Julián):** montar la BD en PostgreSQL con el diseño del 2026-09-30, y luego mejorar su estructura porque "era muy mala".
+- **Propuso la IA:** Postgres en Docker (`docker-compose.yml`) para que todo el equipo lo levante igual; migraciones con Alembic. Como mejoras: tabla de referencia normalizada (`parametros`, `especies`, `rangos_referencia`), CHECK de estado/origen/rangos físicos en `lecturas`, correo en minúsculas, índices en todas las llaves foráneas, `IDENTITY`, revocación con fecha y protección contra lecturas duplicadas del ESP32.
+- **Se aceptó / cambió:** Julián aceptó el diseño; se mantuvieron sus decisiones de roles en tabla aparte y plantas con varios dueños. La tabla de referencia queda en CSV **y** en BD, elegible por configuración (`TABLA_REFERENCIA`, R4).
+
+### 4. Autenticación con JWT
+- **Se pidió (Julián):** revisar si el front tenía algún secreto para autenticar y hacer la autenticación de usuarios.
+- **Propuso la IA:** el front no debe tener ningún secreto (el `JWT_SECRET` vive solo en el `.env` del servidor). Implementó registro/login detrás de puertos del dominio (`RepositorioUsuarios`, `HasherContrasenas`, `EmisorTokens`) con bcrypt y PyJWT como adaptadores, y el decorador `@requiere_usuario` que verifica el token y entrega solo el `usuario_id` al caso de uso.
+- **Se aceptó / cambió:** aceptado. Se dejó fuera el refresh token por tiempo (access token de 60 min).
+
+### 5. Plantas, regla de propiedad, historial y vinculación
+- **Se pidió (Julián):** completar el backend, explicándolo después.
+- **Propuso la IA:** regla "un usuario solo ve sus plantas" en el dominio (`Planta.verificar_acceso`, 403 si es ajena), historial de lecturas (R5), puertos de entrada para todos los casos de uso y un único caso de uso `RegistrarLectura` para el formulario y para el dispositivo. Tokens de dispositivo **opacos** (hash en BD, revocables) en vez de JWT, porque un ESP32 no puede renovar tokens.
+- **Se aceptó / cambió:** aceptado.
+
+### 6. Prueba de cambio: adaptador de dispositivos y simulador del ESP32
+- **Propuso la IA:** separar los commits para que el que agrega `POST /api/dispositivos/{codigo}/lecturas` y `simulador_esp32.py` **no toque `domain/` ni `application/`** (commit `2693920`, verificado). El simulador manda lecturas normales, fuera de rango e inválidas.
+- **Se aceptó / cambió:** aceptado; es el commit que debe enlazar el documento.
+
+### 7. Materas con sticker NFC (idea de Julián) y conexión del front
+- **Se pidió (Julián):** que cada matera tenga un dueño usando **stickers NFC**: al acercar el teléfono, la planta se agrega sola a la cuenta. Como todavía no hay stickers, simularlo con el simulador de los ESP.
+- **Propuso la IA:** el patrón de "clave de reclamo": la matera sale de fábrica sin dueño (`flask fabricar-matera`), con su token en el firmware y una URL `reclamar.html?codigo=…&clave=…` en el sticker; mientras nadie la reclame, el dominio rechaza sus lecturas (`MateraSinDueno`); el reclamo es atómico (un solo dueño). El simulador con `--tocar-nfc` abre esa URL como lo haría el teléfono. Conectó todo el front a la API real.
+- **Se aceptó / cambió:** Julián pidió que la planta se agregue directamente, sin pasos extra: la especie sale del kit de fábrica y el nombre por defecto es "Matera <código>". Probado en el navegador: registro → vuelta al sticker → planta agregada → lecturas en vivo → planta ajena bloqueada.
+
+---
+
 ## Pendientes abiertos (para no perderlos)
 - [x] ~~Decidir si se reutiliza `arquitectura_de_software/` o se abre una carpeta/repo nuevo~~ → resuelto: repo nuevo en `diagnostico-plantas/`.
 - [x] ~~Definir y justificar la regla de agregación de RF3 (qué combinación de BAJO/ALTO da CRITICO vs EN_RIESGO)~~ → resuelto en sesión 2026-09-16: desviación % relativa al límite, umbral leve 10%, umbral severo 50%.
 - [x] ~~Implementar `EvaluadorDiagnostico.evaluar()` en código~~ → resuelto: implementado por el equipo, con tests verdes.
 - [x] ~~RF6 (parámetro ausente / no numérico) devolvía 500 en vez de 400~~ → resuelto sesión 2026-09-18, ver punto 2 arriba.
 - [x] ~~Decidir motor concreto de BD (Postgres/MySQL/otro)~~ → resuelto sesión 2026-09-30: **PostgreSQL**, decidido para el backend de usuarios/auth por buscar semejanza con producción.
-- [ ] Decidir si `especies`/`rangos_referencia` se queda en CSV o migra a la misma BD Postgres, y de normalizar, el esquema (tabla plana vs. `especies`+`rangos_referencia`).
+- [x] ~~Decidir si `especies` se queda en CSV o migra a Postgres~~ → resuelto 2026-10-29: ambas, elegibles por `TABLA_REFERENCIA` (R4); esquema normalizado.
 - [ ] Decidir si se modela histórico de mediciones en el diagrama especulativo de evolución.
 - [x] ~~El equipo de front iba a reemplazar el `<form>` por otro patrón de UI~~ → resuelto: ya llegó a `main` y se fusionó (sesión 2026-09-18, punto 6). Pendiente real: que el equipo de front revise por qué les sigue saliendo "índice de vitalidad" en el código que generan.
 - [ ] Justificar en el documento (6.b.6) la decisión de rutas propias (`/diagnostico`, `/especies`) en vez de las del Anexo A (`/api/v1/...`), y la forma del cuerpo de error elegida.
-- [ ] Implementar el esquema diseñado en la sesión 2026-09-30 (`usuarios`, `roles`, `usuario_roles`, `plantas`, `usuario_planta`, `refresh_tokens`) vía migraciones (Alembic/Flask-Migrate), no SQL a mano.
-- [ ] Elegir librería de JWT (ej. PyJWT) y definir tiempos de expiración de access token y refresh token.
-- [ ] Agregar a `requirements.txt` el driver de Postgres (`psycopg2`/`psycopg`) y la herramienta de migraciones elegida; completar `DATABASE_URL` (formato Postgres) y `SECRET_KEY` en `.env`/`.env.example` cuando se implemente.
+- [x] ~~Implementar el esquema de la sesión 2026-09-30 vía migraciones~~ → resuelto 2026-10-29 con Alembic.
+- [x] ~~Elegir librería de JWT~~ → PyJWT, access token de 60 min (`JWT_MINUTOS_VALIDEZ`). Refresh token: pendiente, fuera de esta entrega.
+- [x] ~~Driver, migraciones, `DATABASE_URL` y secreto~~ → `psycopg`, Alembic, `JWT_SECRET` en `.env`.
 - [ ] Preparar para la sustentación la justificación de implementar gestión de usuarios/autenticación pese a estar listada como "No entra" en la sección 2 del enunciado (fue pedido verbal del profesor, sesión 2026-09-30).
+- [ ] Escribir el documento de arquitectura de la Fase 2 (lo escribe el equipo): diagrama hexagonal con nombres reales, tabla de puertos/adaptadores, dónde se emite y se verifica el JWT, 3 principios SOLID, enlace al commit `2693920` y análisis MQTT.
+- [ ] Probar el flujo NFC desde un teléfono real en la red local (`--host 0.0.0.0`, `FRONT_URL` y `CORS_ORIGIN` con la IP del PC) y grabar la URL en un sticker real.
+- [ ] Conectar el ESP32 físico del equipo (falta saber qué sensores tiene para escribir el firmware).
