@@ -66,7 +66,20 @@ La API queda disponible en `http://localhost:5000`.
 | `POST /api/dispositivos/{codigo}/lecturas` | Token de dispositivo | `{dispositivo, medida_en, humedad, luz, temperatura}` |
 | `POST /diagnostico`, `GET /especies` | — | Endpoints de la fase 1 |
 
-## Simulador del ESP32
+## Materas con sticker NFC (fábrica y reclamo simulados)
+
+Cada matera sale de "fábrica" sin dueño: su token va en el firmware y una clave de reclamo en el sticker NFC. Al acercar el teléfono, el sticker abre `reclamar.html?codigo=...&clave=...` y la planta queda agregada a la cuenta del usuario. Mientras nadie la reclame, el backend rechaza sus lecturas.
+
+```bash
+cd backend
+flask --app presentation.app fabricar-matera --especie potos      # crea materas_fabricadas/MAT-XXXX.json
+cd ..
+python simulador_esp32.py --matera materas_fabricadas/MAT-XXXX.json --tocar-nfc
+```
+
+`--tocar-nfc` abre la URL del sticker en el navegador (el "toque" simulado). Con un sticker real, se graba esa URL con cualquier app de NFC (ej. NFC Tools) y se usa la IP de la red local en `FRONT_URL`.
+
+## Simulador del ESP32 (vinculación manual)
 
 1. Con un usuario logueado, crear una planta y vincular un dispositivo (`POST /api/plantas/{id}/dispositivos`); copiar el `token` que devuelve.
 2. Desde la raíz del repo (solo librería estándar, no requiere instalar nada):
