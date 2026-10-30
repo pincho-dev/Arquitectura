@@ -7,11 +7,13 @@ import pytest
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
 from application.crear_planta import CrearPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
+from application.materas import FabricarMatera, ReclamarMatera
 from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
 from domain.modelos import RangosEspecie, ValorFueraDeRangoFisico
 from domain.plantas import (
-    AccesoDenegado, DatosDePlantaInvalidos, Dispositivo, LecturaDuplicada, Planta, PlantaNoEncontrada,
+    AccesoDenegado, ClaveDeReclamoInvalida, DatosDePlantaInvalidos, Dispositivo, LecturaDuplicada,
+    MateraSinDueno, MateraYaReclamada, Planta, PlantaNoEncontrada,
 )
 from domain.puertos import (
     EspecieLookup, EspecieNoEncontrada, GeneradorTokensDispositivo, HistorialLecturas,
@@ -46,6 +48,9 @@ class _RepositorioPlantasFalso(RepositorioPlantas):
     def listar_de_usuario(self, usuario_id):
         return [p for p in self.plantas.values() if usuario_id in p.duenos]
 
+    def eliminar(self, planta_id):
+        self.plantas.pop(planta_id, None)
+
 
 class _HistorialFalso(HistorialLecturas):
     def __init__(self):
@@ -70,6 +75,7 @@ class _HistorialFalso(HistorialLecturas):
 class _RepositorioDispositivosFalso(RepositorioDispositivos):
     def __init__(self):
         self.dispositivos = []
+        self.claves = {}
 
     def registrar(self, codigo, planta_id, token):
         dispositivo = Dispositivo(len(self.dispositivos) + 1, codigo, planta_id)
@@ -79,10 +85,32 @@ class _RepositorioDispositivosFalso(RepositorioDispositivos):
     def listar_de_planta(self, planta_id):
         return [d for d in self.dispositivos if d.planta_id == planta_id]
 
+    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo):
+        _EspecieLookupFalso().obtener_rangos(especie)
+        dispositivo = self.registrar(codigo, None, token)
+        dispositivo.especie = especie
+        self.claves[codigo] = clave_reclamo
+        return dispositivo
+
+    def buscar_para_reclamo(self, codigo, clave_reclamo):
+        if self.claves.get(codigo) != clave_reclamo:
+            return None
+        return next(d for d in self.dispositivos if d.codigo == codigo)
+
+    def asignar_planta(self, dispositivo_id, planta_id):
+        dispositivo = next(d for d in self.dispositivos if d.id == dispositivo_id)
+        if dispositivo.planta_id is not None:
+            return False
+        dispositivo.planta_id = planta_id
+        return True
+
 
 class _GeneradorFalso(GeneradorTokensDispositivo):
     def generar(self):
         return "dev_token_de_prueba"
+
+    def generar_clave_reclamo(self):
+        return "clave-sticker"
 
 
 @pytest.fixture
@@ -224,3 +252,76 @@ def test_vincular_dispositivo_devuelve_el_token_una_vez(entorno):
 def test_usuario_ajeno_no_puede_vincular_dispositivos(entorno):
     with pytest.raises(AccesoDenegado):
         entorno["vincular"].ejecutar(AJENO, entorno["planta"].id, "ESP32-99")
+
+
+# -------------------------------------------- materas: fábrica y sticker NFC
+
+@pytest.fixture
+def fabrica():
+    plantas, dispositivos, historial = _RepositorioPlantasFalso(), _RepositorioDispositivosFalso(), _HistorialFalso()
+    return {
+        "plantas": plantas,
+        "historial": historial,
+        "fabricar": FabricarMatera(dispositivos, _GeneradorFalso()),
+        "reclamar": ReclamarMatera(dispositivos, plantas),
+        "registrar": RegistrarLectura(plantas, historial, DiagnosticarPlanta(_EspecieLookupFalso())),
+    }
+
+
+def test_fabricar_matera_la_deja_sin_dueno_con_token_y_clave(fabrica):
+    dispositivo, token, clave = fabrica["fabricar"].ejecutar("mat-01", "potos")
+
+    assert dispositivo.codigo == "MAT-01"
+    assert not dispositivo.tiene_dueno()
+    assert (token, clave) == ("dev_token_de_prueba", "clave-sticker")
+
+
+def test_matera_sin_dueno_no_puede_reportar_lecturas(fabrica):
+    dispositivo, _, _ = fabrica["fabricar"].ejecutar("MAT-01", "potos")
+
+    with pytest.raises(MateraSinDueno):
+        fabrica["registrar"].desde_dispositivo(dispositivo, 55, 500, 22, AHORA)
+    assert fabrica["historial"].lecturas == []
+
+
+def test_reclamar_con_el_sticker_crea_la_planta_del_usuario(fabrica):
+    fabrica["fabricar"].ejecutar("MAT-01", "potos")
+
+    planta, dispositivo = fabrica["reclamar"].ejecutar(DUENA, "mat-01", "clave-sticker")
+
+    assert (planta.nombre, planta.especie, planta.duenos) == ("Matera MAT-01", "potos", frozenset({DUENA}))
+    assert dispositivo.planta_id == planta.id
+
+
+def test_despues_de_reclamarla_la_matera_ya_puede_reportar(fabrica):
+    dispositivo, _, _ = fabrica["fabricar"].ejecutar("MAT-01", "potos")
+    planta, _ = fabrica["reclamar"].ejecutar(DUENA, "MAT-01", "clave-sticker")
+
+    fabrica["registrar"].desde_dispositivo(dispositivo, 55, 500, 22, AHORA)
+
+    assert fabrica["historial"].lecturas[0].planta_id == planta.id
+
+
+def test_reclamar_permite_elegir_nombre_y_especie(fabrica):
+    fabrica["fabricar"].ejecutar("MAT-01", "potos")
+
+    planta, _ = fabrica["reclamar"].ejecutar(DUENA, "MAT-01", "clave-sticker", nombre="Mi potos", especie="Potos")
+
+    assert planta.nombre == "Mi potos"
+
+
+def test_sticker_con_clave_incorrecta_no_reclama_nada(fabrica):
+    fabrica["fabricar"].ejecutar("MAT-01", "potos")
+
+    with pytest.raises(ClaveDeReclamoInvalida):
+        fabrica["reclamar"].ejecutar(DUENA, "MAT-01", "clave-adivinada")
+    assert fabrica["plantas"].plantas == {}
+
+
+def test_una_matera_reclamada_no_la_puede_reclamar_otro_usuario(fabrica):
+    fabrica["fabricar"].ejecutar("MAT-01", "potos")
+    fabrica["reclamar"].ejecutar(DUENA, "MAT-01", "clave-sticker")
+
+    with pytest.raises(MateraYaReclamada):
+        fabrica["reclamar"].ejecutar(AJENO, "MAT-01", "clave-sticker")
+    assert fabrica["plantas"].listar_de_usuario(AJENO) == []

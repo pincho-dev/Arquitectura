@@ -55,6 +55,10 @@ class RepositorioPlantas(ABC):
     def listar_de_usuario(self, usuario_id):
         pass
 
+    @abstractmethod
+    def eliminar(self, planta_id):
+        pass
+
 class HistorialLecturas(ABC):
     @abstractmethod
     def guardar(self, lectura):
@@ -81,7 +85,27 @@ class RepositorioDispositivos(ABC):
     def listar_de_planta(self, planta_id):
         pass
 
+    @abstractmethod
+    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo):
+        """Matera sin dueño todavía. Lanza CodigoDispositivoEnUso o EspecieNoEncontrada."""
+        pass
+
+    @abstractmethod
+    def buscar_para_reclamo(self, codigo, clave_reclamo):
+        """Devuelve el Dispositivo (con su especie de fábrica) si la clave
+        corresponde al código, o None."""
+        pass
+
+    @abstractmethod
+    def asignar_planta(self, dispositivo_id, planta_id):
+        """Devuelve False si otro usuario la reclamó primero."""
+        pass
+
 class GeneradorTokensDispositivo(ABC):
     @abstractmethod
     def generar(self):
+        pass
+
+    @abstractmethod
+    def generar_clave_reclamo(self):
         pass

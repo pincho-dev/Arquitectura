@@ -1,4 +1,4 @@
-from domain.plantas import ORIGEN_DISPOSITIVO, ORIGEN_FORMULARIO, Lectura, PlantaNoEncontrada
+from domain.plantas import ORIGEN_DISPOSITIVO, ORIGEN_FORMULARIO, Lectura, MateraSinDueno, PlantaNoEncontrada
 from domain.puertos_entrada import RegistrarLecturaPort
 
 
@@ -19,6 +19,8 @@ class RegistrarLectura(RegistrarLecturaPort):
     def desde_dispositivo(self, dispositivo, humedad, luz, temperatura, medida_en):
         # La planta sale del dispositivo autenticado, nunca de la petición:
         # así un dispositivo no puede reportar para otra planta.
+        if not dispositivo.tiene_dueno():
+            raise MateraSinDueno(f"La matera {dispositivo.codigo} todavía no fue reclamada por ningún usuario.")
         planta = self._buscar_planta(dispositivo.planta_id)
         return self._registrar(planta, humedad, luz, temperatura, medida_en, ORIGEN_DISPOSITIVO, dispositivo.id)
 

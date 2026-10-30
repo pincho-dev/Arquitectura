@@ -19,6 +19,15 @@ class LecturaDuplicada(Exception):
 class CodigoDispositivoEnUso(Exception):
     pass
 
+class ClaveDeReclamoInvalida(Exception):
+    pass
+
+class MateraYaReclamada(Exception):
+    pass
+
+class MateraSinDueno(Exception):
+    pass
+
 class DatosDePlantaInvalidos(Exception):
     def __init__(self, mensaje, campo=None):
         super().__init__(mensaje)
@@ -39,11 +48,17 @@ class Planta:
 
 
 class Dispositivo:
-    def __init__(self, id, codigo, planta_id, ultima_conexion=None):
+    def __init__(self, id, codigo, planta_id, ultima_conexion=None, especie=None):
         self.id = id
         self.codigo = codigo
         self.planta_id = planta_id
         self.ultima_conexion = ultima_conexion
+        # Especie del kit de fábrica; solo se usa al reclamar la matera.
+        self.especie = especie
+
+    def tiene_dueno(self):
+        # Una matera sin planta todavía no pertenece a ningún usuario.
+        return self.planta_id is not None
 
     def esta_conectado(self, ahora):
         return self.ultima_conexion is not None and ahora - self.ultima_conexion <= VENTANA_CONEXION

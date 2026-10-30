@@ -7,7 +7,7 @@ JSON y mapea errores a códigos HTTP. Agregarlo no modificó el dominio.
 from flask import Blueprint, jsonify, request
 
 from domain.modelos import ValorFueraDeRangoFisico
-from domain.plantas import LecturaDuplicada, PlantaNoEncontrada
+from domain.plantas import LecturaDuplicada, MateraSinDueno, PlantaNoEncontrada
 from presentation.http import ErrorDeEntrada, ahora_utc, error_json, leer_fecha, leer_medicion, leer_objeto, leer_texto
 from presentation.seguridad import extraer_bearer, no_autorizado
 
@@ -26,6 +26,10 @@ def crear_api_dispositivos(registrar_lectura, autenticador):
     @api.errorhandler(LecturaDuplicada)
     def _duplicada(e):
         return error_json("LECTURA_DUPLICADA", str(e), 409, campo="medida_en")
+
+    @api.errorhandler(MateraSinDueno)
+    def _sin_dueno(e):
+        return error_json("MATERA_SIN_DUENO", str(e), 409)
 
     @api.errorhandler(PlantaNoEncontrada)
     def _sin_planta(e):

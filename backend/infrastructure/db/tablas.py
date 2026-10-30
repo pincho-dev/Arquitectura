@@ -114,16 +114,24 @@ usuario_planta = Table(
     Index(None, "planta_id"),
 )
 
-# Cada dispositivo reporta lecturas de UNA planta; su token solo sirve para eso.
+# Cada dispositivo (matera) reporta lecturas de UNA planta; su token solo sirve
+# para eso. Una matera recién fabricada no tiene planta (planta_id NULL) hasta
+# que un usuario la reclama con la clave de su sticker NFC; mientras tanto sus
+# lecturas se rechazan.
 dispositivos = Table(
     "dispositivos", metadata,
     Column("id", BigInteger, Identity(), primary_key=True),
     Column("codigo", String(50), nullable=False, unique=True),
-    Column("planta_id", BigInteger, ForeignKey("plantas.id", ondelete="CASCADE"), nullable=False),
+    Column("planta_id", BigInteger, ForeignKey("plantas.id", ondelete="CASCADE")),
     Column("token_hash", String(64), nullable=False, unique=True),
+    # Especie del kit con que se vendió la matera: la planta se crea con ella al reclamarla.
+    Column("especie_id", Integer, ForeignKey("especies.id")),
+    Column("clave_reclamo_hash", String(64)),
+    Column("reclamado_en", DateTime(timezone=True)),
     Column("revocado_en", DateTime(timezone=True)),
     Column("ultima_conexion", DateTime(timezone=True)),
     _creado_en(),
+    CheckConstraint("planta_id IS NOT NULL OR clave_reclamo_hash IS NOT NULL", name="reclamable_o_con_planta"),
     Index(None, "planta_id"),
 )
 

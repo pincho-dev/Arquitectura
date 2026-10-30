@@ -20,3 +20,6 @@ htmlcov/
 
 # Enunciado del curso (referencia local, no versionar)
 *.pdf
+
+# Materas de la fábrica simulada (contienen tokens de dispositivo)
+materas_fabricadas/

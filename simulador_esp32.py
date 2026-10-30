@@ -6,8 +6,16 @@ Envía lecturas periódicas a POST /api/dispositivos/<codigo>/lecturas con el
 token del dispositivo. Además de lecturas realistas, mete a propósito valores
 fuera de rango y datos inválidos para probar la robustez de la API.
 
-Uso:
-    python simulador_esp32.py --codigo ESP32-01 --token dev_xxx
+Uso con una matera de la fábrica simulada (flujo NFC):
+    python simulador_esp32.py --matera materas_fabricadas/MAT-1A2B.json --tocar-nfc
+
+    --matera carga el código, el token y la especie que "trae de fábrica".
+    --tocar-nfc abre en el navegador la URL del sticker, como si el teléfono
+    lo hubiera leído. Hasta que alguien reclame la matera, el backend
+    rechaza sus lecturas (409 MATERA_SIN_DUENO) y el simulador sigue
+    intentando: así se ve que cada matera necesita un dueño.
+
+Uso con un dispositivo vinculado a mano:
     python simulador_esp32.py --codigo ESP32-01 --token dev_xxx --intervalo 2 --perfil helecho
 
 El token también puede ir en la variable de entorno MATERA_TOKEN_DISPOSITIVO.
@@ -21,6 +29,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+import webbrowser
 from datetime import datetime, timedelta, timezone
 
 # Condiciones típicas por especie (centro de los rangos del Anexo B).
@@ -112,19 +121,38 @@ def enviar(url, token, cuerpo):
 def main():
     parser = argparse.ArgumentParser(description="Simulador del ESP32 de la matera inteligente.")
     parser.add_argument("--url", default="http://localhost:5000", help="URL base del backend")
-    parser.add_argument("--codigo", required=True, help="Código del dispositivo, ej. ESP32-01")
+    parser.add_argument("--matera", help="Archivo JSON generado por 'flask fabricar-matera'")
+    parser.add_argument("--tocar-nfc", action="store_true", help="Abrir la URL del sticker NFC en el navegador")
+    parser.add_argument("--codigo", help="Código del dispositivo, ej. ESP32-01")
     parser.add_argument("--token", default=os.environ.get("MATERA_TOKEN_DISPOSITIVO"),
                         help="Token del dispositivo (o variable MATERA_TOKEN_DISPOSITIVO)")
     parser.add_argument("--intervalo", type=float, default=5, help="Segundos entre lecturas (default 5)")
     parser.add_argument("--cantidad", type=int, default=0, help="Lecturas a enviar; 0 = sin fin")
-    parser.add_argument("--perfil", choices=sorted(PERFILES), default="potos", help="Condiciones típicas a simular")
+    parser.add_argument("--perfil", choices=sorted(PERFILES), help="Condiciones típicas a simular (default: la especie de la matera, o potos)")
     parser.add_argument("--prob-fuera", type=float, default=0.15, help="Probabilidad de lectura fuera de rango")
     parser.add_argument("--prob-invalido", type=float, default=0.10, help="Probabilidad de dato inválido")
     parser.add_argument("--semilla", type=int, help="Semilla aleatoria (para repetir una corrida)")
     args = parser.parse_args()
 
+    url_sticker = None
+    if args.matera:
+        with open(args.matera, encoding="utf-8") as archivo:
+            matera = json.load(archivo)
+        args.codigo = args.codigo or matera["codigo"]
+        args.token = args.token or matera["token_firmware"]
+        args.perfil = args.perfil or matera.get("especie")
+        url_sticker = matera.get("url_sticker_nfc")
+    args.perfil = args.perfil if args.perfil in PERFILES else "potos"
+
+    if not args.codigo:
+        parser.error("falta el código: usa --codigo o --matera")
     if not args.token:
-        parser.error("falta el token: usa --token o la variable MATERA_TOKEN_DISPOSITIVO")
+        parser.error("falta el token: usa --token, --matera o la variable MATERA_TOKEN_DISPOSITIVO")
+    if args.tocar_nfc:
+        if not url_sticker:
+            parser.error("--tocar-nfc necesita --matera (de ahí sale la URL del sticker)")
+        print(f"📱 Teléfono acercado al sticker NFC de {args.codigo}: abriendo {url_sticker}")
+        webbrowser.open(url_sticker)
 
     rnd = random.Random(args.semilla)
     sensor = SensorSimulado(PERFILES[args.perfil], rnd)
@@ -143,6 +171,8 @@ def main():
                 if status == 201:
                     anterior = cuerpo
                     detalle = respuesta.get("estado")
+                elif respuesta.get("error") == "MATERA_SIN_DUENO":
+                    detalle = "esperando a que alguien toque el sticker NFC y reclame la matera..."
                 else:
                     detalle = f"{respuesta.get('error')}: {respuesta.get('mensaje')}"
                 valores = {k: cuerpo.get(k) for k in ("humedad", "luz", "temperatura")}

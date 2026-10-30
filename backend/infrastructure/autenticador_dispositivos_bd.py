@@ -2,7 +2,7 @@ from sqlalchemy import func, update
 
 from domain.plantas import Dispositivo
 from infrastructure.db.tablas import dispositivos
-from infrastructure.tokens_dispositivo import hash_token_dispositivo
+from infrastructure.tokens_dispositivo import hash_secreto
 
 
 class AutenticadorDispositivosBd:
@@ -21,7 +21,7 @@ class AutenticadorDispositivosBd:
         with self.engine.begin() as conexion:
             fila = conexion.execute(
                 update(dispositivos)
-                .where(dispositivos.c.token_hash == hash_token_dispositivo(token),
+                .where(dispositivos.c.token_hash == hash_secreto(token),
                        dispositivos.c.revocado_en.is_(None))
                 .values(ultima_conexion=func.now())
                 .returning(dispositivos.c.id, dispositivos.c.codigo,

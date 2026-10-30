@@ -1,4 +1,4 @@
-from sqlalchemy import func, insert, select
+from sqlalchemy import delete, func, insert, select
 
 from domain.plantas import Planta
 from domain.puertos import EspecieNoEncontrada, RepositorioPlantas
@@ -30,6 +30,10 @@ class RepositorioPlantasBd(RepositorioPlantas):
     def listar_de_usuario(self, usuario_id):
         de_usuario = select(usuario_planta.c.planta_id).where(usuario_planta.c.usuario_id == usuario_id)
         return self._consultar(plantas.c.id.in_(de_usuario))
+
+    def eliminar(self, planta_id):
+        with self.engine.begin() as conexion:
+            conexion.execute(delete(plantas).where(plantas.c.id == planta_id))
 
     def _consultar(self, filtro):
         consulta = (

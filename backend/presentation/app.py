@@ -13,6 +13,7 @@ from application.diagnosticar_planta import DiagnosticarPlanta
 from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
 from application.iniciar_sesion import IniciarSesion
+from application.materas import FabricarMatera, ReclamarMatera
 from application.registrar_usuario import RegistrarUsuario
 from infrastructure.autenticador_dispositivos_bd import AutenticadorDispositivosBd
 from infrastructure.db.conexion import crear_engine
@@ -31,12 +32,14 @@ from application.listar_especies import ListarEspecies
 from presentation.api_auth import crear_api_auth
 from presentation.api_dispositivos import crear_api_dispositivos
 from presentation.api_plantas import crear_api_plantas
+from presentation.cli_fabrica import registrar_cli_fabrica
 from presentation.seguridad import crear_requiere_usuario
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 app = Flask(__name__)
-CORS(app, origins=os.environ.get("CORS_ORIGIN", "*"))
+# Varios orígenes separados por coma: el front en el PC y en el teléfono (red local).
+CORS(app, origins=[o.strip() for o in os.environ.get("CORS_ORIGIN", "*").split(",")])
 
 # ---- Punto de composición: único lugar donde se decide qué adaptador
 # ---- implementa cada puerto. El engine no abre conexión hasta usarse.
@@ -68,6 +71,7 @@ caso_de_uso_especies = ListarEspecies(especie_lookup)
 repositorio_plantas = RepositorioPlantasBd(engine)
 historial_lecturas = HistorialLecturasBd(engine)
 repositorio_dispositivos = RepositorioDispositivosBd(engine)
+generador_tokens_dispositivo = GeneradorTokensDispositivoAleatorio()
 registrar_lectura = RegistrarLectura(repositorio_plantas, historial_lecturas, caso_de_uso)
 
 app.register_blueprint(crear_api_plantas(
@@ -75,9 +79,17 @@ app.register_blueprint(crear_api_plantas(
     ConsultarEstadoPlanta(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso),
     CrearPlanta(repositorio_plantas),
     registrar_lectura,
-    VincularDispositivo(repositorio_plantas, repositorio_dispositivos, GeneradorTokensDispositivoAleatorio()),
+    VincularDispositivo(repositorio_plantas, repositorio_dispositivos, generador_tokens_dispositivo),
+    ReclamarMatera(repositorio_dispositivos, repositorio_plantas),
     requiere_usuario,
 ))
+
+# Fábrica simulada (flask fabricar-matera): otro adaptador de entrada, por consola.
+registrar_cli_fabrica(
+    app,
+    FabricarMatera(repositorio_dispositivos, generador_tokens_dispositivo),
+    os.environ.get("FRONT_URL", "http://localhost:5500"),
+)
 
 # Adaptador de entrada de dispositivos (R2): reutiliza el mismo puerto
 # RegistrarLecturaPort que el formulario del front.

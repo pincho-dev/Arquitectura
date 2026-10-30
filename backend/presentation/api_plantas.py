@@ -4,7 +4,8 @@ from flask import Blueprint, g, jsonify, request
 
 from domain.modelos import ValorFueraDeRangoFisico
 from domain.plantas import (
-    AccesoDenegado, CodigoDispositivoEnUso, DatosDePlantaInvalidos, PlantaNoEncontrada,
+    AccesoDenegado, ClaveDeReclamoInvalida, CodigoDispositivoEnUso, DatosDePlantaInvalidos,
+    MateraYaReclamada, PlantaNoEncontrada,
 )
 from domain.puertos import EspecieNoEncontrada
 from presentation.http import ErrorDeEntrada, ahora_utc, error_json, leer_medicion, leer_objeto, leer_texto
@@ -19,7 +20,7 @@ TEXTO_ESTADO = {
 
 
 def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_lectura,
-                      vincular_dispositivo, requiere_usuario):
+                      vincular_dispositivo, reclamar_matera, requiere_usuario):
     api = Blueprint("plantas", __name__, url_prefix="/api/plantas")
 
     @api.errorhandler(ErrorDeEntrada)
@@ -50,6 +51,14 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     def _codigo_en_uso(e):
         return error_json("DISPOSITIVO_YA_EXISTE", str(e), 409, campo="codigo")
 
+    @api.errorhandler(ClaveDeReclamoInvalida)
+    def _sticker_invalido(e):
+        return error_json("STICKER_INVALIDO", str(e), 404, campo="clave")
+
+    @api.errorhandler(MateraYaReclamada)
+    def _ya_reclamada(e):
+        return error_json("MATERA_YA_RECLAMADA", str(e), 409, campo="codigo")
+
     @api.route("", methods=["GET"])
     @requiere_usuario
     def listar():
@@ -62,6 +71,18 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
         datos = leer_objeto(request.get_json(silent=True))
         planta = crear_planta.ejecutar(g.usuario_id, leer_texto(datos, "nombre"), leer_texto(datos, "especie"))
         return jsonify(_planta_json(planta)), 201
+
+    @api.route("/reclamar", methods=["POST"])
+    @requiere_usuario
+    def reclamar():
+        # Lo que hace el front cuando el teléfono lee el sticker NFC de la matera.
+        datos = leer_objeto(request.get_json(silent=True))
+        planta, dispositivo = reclamar_matera.ejecutar(
+            g.usuario_id, leer_texto(datos, "codigo"), leer_texto(datos, "clave"),
+            nombre=datos.get("nombre") if isinstance(datos.get("nombre"), str) else None,
+            especie=datos.get("especie") if isinstance(datos.get("especie"), str) else None,
+        )
+        return jsonify({**_planta_json(planta), "dispositivo": dispositivo.codigo}), 201
 
     @api.route("/<int:planta_id>/estado", methods=["GET"])
     @requiere_usuario

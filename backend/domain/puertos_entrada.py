@@ -64,3 +64,17 @@ class IniciarSesionPort(ABC):
     def ejecutar(self, email, password):
         """Devuelve (Usuario, token). Lanza CredencialesInvalidas."""
         pass
+
+class FabricarMateraPort(ABC):
+    @abstractmethod
+    def ejecutar(self, codigo, especie):
+        """Devuelve (Dispositivo, token, clave_reclamo): el token va al firmware
+        y la clave al sticker NFC. Ninguno se puede volver a consultar."""
+        pass
+
+class ReclamarMateraPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, codigo, clave_reclamo, nombre=None, especie=None):
+        """El usuario se vuelve dueño de la matera: crea su planta y le asigna
+        el dispositivo. Devuelve (Planta, Dispositivo)."""
+        pass
