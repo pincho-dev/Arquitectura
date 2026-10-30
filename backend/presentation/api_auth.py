@@ -2,6 +2,7 @@
 from flask import Blueprint, g, jsonify, request
 
 from domain.usuarios import CredencialesInvalidas, DatosDeRegistroInvalidos, EmailYaRegistrado
+from presentation.http import error_json as _error
 
 
 def crear_api_auth(registrar_usuario, iniciar_sesion, requiere_usuario):
@@ -56,7 +57,3 @@ def _sesion(usuario, token):
         "tipo": "Bearer",
         "usuario": {"id": usuario.id, "nombre": usuario.nombre, "correo": usuario.email},
     }
-
-
-def _error(codigo, mensaje, status, campo=None):
-    return jsonify({"error": codigo, "mensaje": mensaje, "detalle": {"campo": campo}}), status

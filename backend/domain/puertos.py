@@ -38,3 +38,50 @@ class EmisorTokens(ABC):
     @abstractmethod
     def emitir_para_usuario(self, usuario_id):
         pass
+
+
+class RepositorioPlantas(ABC):
+    @abstractmethod
+    def crear(self, nombre, especie, usuario_id):
+        """Crea la planta con usuario_id como dueño. Lanza EspecieNoEncontrada."""
+        pass
+
+    @abstractmethod
+    def buscar(self, planta_id):
+        """Devuelve la Planta (con sus dueños) o None."""
+        pass
+
+    @abstractmethod
+    def listar_de_usuario(self, usuario_id):
+        pass
+
+class HistorialLecturas(ABC):
+    @abstractmethod
+    def guardar(self, lectura):
+        """Lanza LecturaDuplicada si el dispositivo ya reportó esa misma marca de tiempo."""
+        pass
+
+    @abstractmethod
+    def ultima(self, planta_id):
+        """Devuelve la Lectura más reciente o None."""
+        pass
+
+    @abstractmethod
+    def listar(self, planta_id, limite):
+        """Lecturas más recientes primero."""
+        pass
+
+class RepositorioDispositivos(ABC):
+    @abstractmethod
+    def registrar(self, codigo, planta_id, token):
+        """Guarda el dispositivo (y solo el hash del token). Lanza CodigoDispositivoEnUso."""
+        pass
+
+    @abstractmethod
+    def listar_de_planta(self, planta_id):
+        pass
+
+class GeneradorTokensDispositivo(ABC):
+    @abstractmethod
+    def generar(self):
+        pass

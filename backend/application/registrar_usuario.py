@@ -1,11 +1,12 @@
 from domain.usuarios import DatosDeRegistroInvalidos
+from domain.puertos_entrada import RegistrarUsuarioPort
 
 LONGITUD_MINIMA_PASSWORD = 8
 # bcrypt solo usa los primeros 72 bytes; más largo se rechaza en vez de truncarse en silencio.
 BYTES_MAXIMOS_PASSWORD = 72
 
 
-class RegistrarUsuario:
+class RegistrarUsuario(RegistrarUsuarioPort):
 
     def __init__(self, repositorio_usuarios, hasher, emisor_tokens):
         self.repositorio_usuarios = repositorio_usuarios

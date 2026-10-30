@@ -17,21 +17,27 @@ def crear_requiere_usuario(tokens):
     def requiere_usuario(vista):
         @wraps(vista)
         def envoltura(*args, **kwargs):
-            cabecera = request.headers.get("Authorization", "")
-            esquema, _, token = cabecera.partition(" ")
-            if esquema.lower() != "bearer" or not token:
-                return _no_autorizado("Falta el token de acceso (Authorization: Bearer <token>).")
+            token = extraer_bearer()
+            if token is None:
+                return no_autorizado("Falta el token de acceso (Authorization: Bearer <token>).")
             try:
-                g.usuario_id = tokens.verificar(token.strip(), ALCANCE_USUARIO)
+                g.usuario_id = tokens.verificar(token, ALCANCE_USUARIO)
             except TokenInvalido as error:
-                return _no_autorizado(str(error))
+                return no_autorizado(str(error))
             return vista(*args, **kwargs)
         return envoltura
 
     return requiere_usuario
 
 
-def _no_autorizado(mensaje):
+def extraer_bearer():
+    esquema, _, token = request.headers.get("Authorization", "").partition(" ")
+    if esquema.lower() != "bearer" or not token.strip():
+        return None
+    return token.strip()
+
+
+def no_autorizado(mensaje):
     respuesta = jsonify({"error": "NO_AUTORIZADO", "mensaje": mensaje, "detalle": {}})
     respuesta.headers["WWW-Authenticate"] = "Bearer"
     return respuesta, 401

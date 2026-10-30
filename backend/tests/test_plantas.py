@@ -1,0 +1,226 @@
+"""Casos de uso de plantas, lecturas y dispositivos con dobles de prueba:
+sin servidor, sin archivos y sin base de datos."""
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
+from application.crear_planta import CrearPlanta
+from application.diagnosticar_planta import DiagnosticarPlanta
+from application.registrar_lectura import RegistrarLectura
+from application.vincular_dispositivo import VincularDispositivo
+from domain.modelos import RangosEspecie, ValorFueraDeRangoFisico
+from domain.plantas import (
+    AccesoDenegado, DatosDePlantaInvalidos, Dispositivo, LecturaDuplicada, Planta, PlantaNoEncontrada,
+)
+from domain.puertos import (
+    EspecieLookup, EspecieNoEncontrada, GeneradorTokensDispositivo, HistorialLecturas,
+    RepositorioDispositivos, RepositorioPlantas,
+)
+from domain.valores import Rango
+
+DUENA, AJENO = 1, 2
+AHORA = datetime(2026, 10, 30, 12, 0, tzinfo=timezone.utc)
+
+
+class _EspecieLookupFalso(EspecieLookup):
+    def obtener_rangos(self, nombre_especie):
+        if nombre_especie != "potos":
+            raise EspecieNoEncontrada(nombre_especie)
+        return RangosEspecie("potos", Rango(40, 70), Rango(300, 1200), Rango(18, 30))
+
+
+class _RepositorioPlantasFalso(RepositorioPlantas):
+    def __init__(self):
+        self.plantas = {}
+
+    def crear(self, nombre, especie, usuario_id):
+        _EspecieLookupFalso().obtener_rangos(especie)
+        planta = Planta(len(self.plantas) + 1, nombre, especie, {usuario_id})
+        self.plantas[planta.id] = planta
+        return planta
+
+    def buscar(self, planta_id):
+        return self.plantas.get(planta_id)
+
+    def listar_de_usuario(self, usuario_id):
+        return [p for p in self.plantas.values() if usuario_id in p.duenos]
+
+
+class _HistorialFalso(HistorialLecturas):
+    def __init__(self):
+        self.lecturas = []
+
+    def guardar(self, lectura):
+        if lectura.dispositivo_id is not None and any(
+            l.dispositivo_id == lectura.dispositivo_id and l.medida_en == lectura.medida_en for l in self.lecturas
+        ):
+            raise LecturaDuplicada()
+        self.lecturas.append(lectura)
+
+    def ultima(self, planta_id):
+        recientes = self.listar(planta_id, 1)
+        return recientes[0] if recientes else None
+
+    def listar(self, planta_id, limite):
+        propias = [l for l in self.lecturas if l.planta_id == planta_id]
+        return sorted(propias, key=lambda l: l.medida_en, reverse=True)[:limite]
+
+
+class _RepositorioDispositivosFalso(RepositorioDispositivos):
+    def __init__(self):
+        self.dispositivos = []
+
+    def registrar(self, codigo, planta_id, token):
+        dispositivo = Dispositivo(len(self.dispositivos) + 1, codigo, planta_id)
+        self.dispositivos.append(dispositivo)
+        return dispositivo
+
+    def listar_de_planta(self, planta_id):
+        return [d for d in self.dispositivos if d.planta_id == planta_id]
+
+
+class _GeneradorFalso(GeneradorTokensDispositivo):
+    def generar(self):
+        return "dev_token_de_prueba"
+
+
+@pytest.fixture
+def entorno():
+    plantas, historial, dispositivos = _RepositorioPlantasFalso(), _HistorialFalso(), _RepositorioDispositivosFalso()
+    diagnosticar = DiagnosticarPlanta(_EspecieLookupFalso())
+    planta = plantas.crear("Potos sala", "potos", DUENA)
+    return {
+        "planta": planta,
+        "historial": historial,
+        "registrar": RegistrarLectura(plantas, historial, diagnosticar),
+        "consultar": ConsultarEstadoPlanta(plantas, historial, dispositivos, diagnosticar),
+        "listar": ListarPlantas(plantas, historial, dispositivos, diagnosticar),
+        "crear": CrearPlanta(plantas),
+        "vincular": VincularDispositivo(plantas, dispositivos, _GeneradorFalso()),
+    }
+
+
+# ---------------------------------------------------------------- dominio
+
+def test_solo_los_duenos_tienen_acceso_a_la_planta():
+    planta = Planta(1, "Potos", "potos", {DUENA})
+
+    planta.verificar_acceso(DUENA)
+    with pytest.raises(AccesoDenegado):
+        planta.verificar_acceso(AJENO)
+
+
+def test_dispositivo_conectado_solo_si_reporto_hace_poco():
+    assert Dispositivo(1, "ESP32-01", 1, AHORA - timedelta(seconds=30)).esta_conectado(AHORA)
+    assert not Dispositivo(1, "ESP32-01", 1, AHORA - timedelta(minutes=10)).esta_conectado(AHORA)
+    assert not Dispositivo(1, "ESP32-01", 1, None).esta_conectado(AHORA)
+
+
+# -------------------------------------------------------- registrar lectura
+
+def test_lectura_en_rango_se_guarda_como_saludable(entorno):
+    diagnostico = entorno["registrar"].desde_formulario(DUENA, entorno["planta"].id, 55, 500, 22, AHORA)
+
+    assert diagnostico.estado == "SALUDABLE"
+    guardada = entorno["historial"].lecturas[0]
+    assert (guardada.estado, guardada.origen, guardada.dispositivo_id) == ("SALUDABLE", "formulario", None)
+
+
+def test_lectura_fuera_de_rango_se_guarda_con_su_estado(entorno):
+    diagnostico = entorno["registrar"].desde_formulario(DUENA, entorno["planta"].id, 10, 500, 22, AHORA)
+
+    assert diagnostico.estado == "CRITICO"
+    assert entorno["historial"].lecturas[0].estado == "CRITICO"
+
+
+def test_lectura_fisicamente_imposible_se_rechaza_y_no_se_guarda(entorno):
+    with pytest.raises(ValorFueraDeRangoFisico):
+        entorno["registrar"].desde_formulario(DUENA, entorno["planta"].id, 150, 500, 22, AHORA)
+
+    assert entorno["historial"].lecturas == []
+
+
+def test_usuario_ajeno_no_puede_registrar_lecturas(entorno):
+    with pytest.raises(AccesoDenegado):
+        entorno["registrar"].desde_formulario(AJENO, entorno["planta"].id, 55, 500, 22, AHORA)
+
+
+def test_lectura_de_dispositivo_va_a_la_planta_del_dispositivo(entorno):
+    dispositivo = Dispositivo(9, "ESP32-01", entorno["planta"].id)
+
+    entorno["registrar"].desde_dispositivo(dispositivo, 55, 500, 22, AHORA)
+
+    guardada = entorno["historial"].lecturas[0]
+    assert (guardada.planta_id, guardada.origen, guardada.dispositivo_id) == (entorno["planta"].id, "dispositivo", 9)
+
+
+def test_lectura_repetida_del_dispositivo_se_detecta(entorno):
+    dispositivo = Dispositivo(9, "ESP32-01", entorno["planta"].id)
+    entorno["registrar"].desde_dispositivo(dispositivo, 55, 500, 22, AHORA)
+
+    with pytest.raises(LecturaDuplicada):
+        entorno["registrar"].desde_dispositivo(dispositivo, 55, 500, 22, AHORA)
+
+
+def test_lectura_para_planta_inexistente_falla(entorno):
+    with pytest.raises(PlantaNoEncontrada):
+        entorno["registrar"].desde_formulario(DUENA, 999, 55, 500, 22, AHORA)
+
+
+# ------------------------------------------------------- consultar plantas
+
+def test_estado_sin_lecturas_no_tiene_diagnostico(entorno):
+    resumen = entorno["consultar"].ejecutar(DUENA, entorno["planta"].id)
+
+    assert resumen.diagnostico is None
+    assert resumen.ultima_lectura is None
+    assert resumen.historial == []
+
+
+def test_estado_usa_la_lectura_mas_reciente_y_trae_historial(entorno):
+    registrar, planta_id = entorno["registrar"], entorno["planta"].id
+    registrar.desde_formulario(DUENA, planta_id, 55, 500, 22, AHORA - timedelta(minutes=5))
+    registrar.desde_formulario(DUENA, planta_id, 10, 500, 22, AHORA)
+
+    resumen = entorno["consultar"].ejecutar(DUENA, planta_id)
+
+    assert resumen.diagnostico.estado == "CRITICO"
+    assert [l.humedad for l in resumen.historial] == [10, 55]
+
+
+def test_usuario_ajeno_no_puede_ver_el_estado(entorno):
+    with pytest.raises(AccesoDenegado):
+        entorno["consultar"].ejecutar(AJENO, entorno["planta"].id)
+
+
+def test_listar_devuelve_solo_las_plantas_del_usuario(entorno):
+    entorno["crear"].ejecutar(AJENO, "Potos ajeno", "potos")
+
+    nombres = [r.planta.nombre for r in entorno["listar"].ejecutar(DUENA)]
+
+    assert nombres == ["Potos sala"]
+
+
+# ------------------------------------------------- crear planta / vincular
+
+def test_crear_planta_sin_nombre_falla(entorno):
+    with pytest.raises(DatosDePlantaInvalidos):
+        entorno["crear"].ejecutar(DUENA, "   ", "potos")
+
+
+def test_crear_planta_de_especie_desconocida_falla(entorno):
+    with pytest.raises(EspecieNoEncontrada):
+        entorno["crear"].ejecutar(DUENA, "Rara", "monstera")
+
+
+def test_vincular_dispositivo_devuelve_el_token_una_vez(entorno):
+    dispositivo, token = entorno["vincular"].ejecutar(DUENA, entorno["planta"].id, " esp32-01 ")
+
+    assert dispositivo.codigo == "ESP32-01"
+    assert token == "dev_token_de_prueba"
+
+
+def test_usuario_ajeno_no_puede_vincular_dispositivos(entorno):
+    with pytest.raises(AccesoDenegado):
+        entorno["vincular"].ejecutar(AJENO, entorno["planta"].id, "ESP32-99")

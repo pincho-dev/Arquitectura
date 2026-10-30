@@ -7,19 +7,28 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
+from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
+from application.crear_planta import CrearPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
+from application.registrar_lectura import RegistrarLectura
+from application.vincular_dispositivo import VincularDispositivo
 from application.iniciar_sesion import IniciarSesion
 from application.registrar_usuario import RegistrarUsuario
 from infrastructure.db.conexion import crear_engine
 from infrastructure.especie_lookup_bd import EspecieLookupBd
 from infrastructure.especie_lookup_csv import EspecieLookupCsv
 from infrastructure.hasher_bcrypt import HasherBcrypt
+from infrastructure.historial_lecturas_bd import HistorialLecturasBd
+from infrastructure.repositorio_dispositivos_bd import RepositorioDispositivosBd
+from infrastructure.repositorio_plantas_bd import RepositorioPlantasBd
+from infrastructure.tokens_dispositivo import GeneradorTokensDispositivoAleatorio
 from infrastructure.repositorio_usuarios_bd import RepositorioUsuariosBd
 from infrastructure.tokens_jwt import TokensJwt
 from domain.modelos import ValorFueraDeRangoFisico
 from domain.puertos import EspecieNoEncontrada
 from application.listar_especies import ListarEspecies
 from presentation.api_auth import crear_api_auth
+from presentation.api_plantas import crear_api_plantas
 from presentation.seguridad import crear_requiere_usuario
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -53,6 +62,20 @@ app.register_blueprint(crear_api_auth(
 especie_lookup = _crear_tabla_referencia()
 caso_de_uso = DiagnosticarPlanta(especie_lookup)
 caso_de_uso_especies = ListarEspecies(especie_lookup)
+
+repositorio_plantas = RepositorioPlantasBd(engine)
+historial_lecturas = HistorialLecturasBd(engine)
+repositorio_dispositivos = RepositorioDispositivosBd(engine)
+registrar_lectura = RegistrarLectura(repositorio_plantas, historial_lecturas, caso_de_uso)
+
+app.register_blueprint(crear_api_plantas(
+    ListarPlantas(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso),
+    ConsultarEstadoPlanta(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso),
+    CrearPlanta(repositorio_plantas),
+    registrar_lectura,
+    VincularDispositivo(repositorio_plantas, repositorio_dispositivos, GeneradorTokensDispositivoAleatorio()),
+    requiere_usuario,
+))
 
 # Bitácora en memoria de las últimas solicitudes, solo para el panel de
 # estado (GET /estado). No es persistencia de mediciones (fuera de

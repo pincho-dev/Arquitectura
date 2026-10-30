@@ -1,7 +1,8 @@
 from domain.usuarios import CredencialesInvalidas
+from domain.puertos_entrada import IniciarSesionPort
 
 
-class IniciarSesion:
+class IniciarSesion(IniciarSesionPort):
 
     def __init__(self, repositorio_usuarios, hasher, emisor_tokens):
         self.repositorio_usuarios = repositorio_usuarios

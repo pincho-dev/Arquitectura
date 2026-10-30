@@ -1,8 +1,8 @@
-
 from domain.evaluador import EvaluadorDiagnostico
 from domain.modelos import Medicion
+from domain.puertos_entrada import DiagnosticarPlantaPort
 
-class DiagnosticarPlanta:
+class DiagnosticarPlanta(DiagnosticarPlantaPort):
 
     def __init__ (self, especie_lookup):
         self.especie_lookup = especie_lookup
