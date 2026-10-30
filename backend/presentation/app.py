@@ -14,6 +14,7 @@ from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
 from application.iniciar_sesion import IniciarSesion
 from application.registrar_usuario import RegistrarUsuario
+from infrastructure.autenticador_dispositivos_bd import AutenticadorDispositivosBd
 from infrastructure.db.conexion import crear_engine
 from infrastructure.especie_lookup_bd import EspecieLookupBd
 from infrastructure.especie_lookup_csv import EspecieLookupCsv
@@ -28,6 +29,7 @@ from domain.modelos import ValorFueraDeRangoFisico
 from domain.puertos import EspecieNoEncontrada
 from application.listar_especies import ListarEspecies
 from presentation.api_auth import crear_api_auth
+from presentation.api_dispositivos import crear_api_dispositivos
 from presentation.api_plantas import crear_api_plantas
 from presentation.seguridad import crear_requiere_usuario
 
@@ -76,6 +78,10 @@ app.register_blueprint(crear_api_plantas(
     VincularDispositivo(repositorio_plantas, repositorio_dispositivos, GeneradorTokensDispositivoAleatorio()),
     requiere_usuario,
 ))
+
+# Adaptador de entrada de dispositivos (R2): reutiliza el mismo puerto
+# RegistrarLecturaPort que el formulario del front.
+app.register_blueprint(crear_api_dispositivos(registrar_lectura, AutenticadorDispositivosBd(engine)))
 
 # Bitácora en memoria de las últimas solicitudes, solo para el panel de
 # estado (GET /estado). No es persistencia de mediciones (fuera de
