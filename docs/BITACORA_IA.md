@@ -159,7 +159,7 @@
 - **Se aceptó / cambió:** aceptado.
 
 ### 6. Prueba de cambio: adaptador de dispositivos y simulador del ESP32
-- **Propuso la IA:** separar los commits para que el que agrega `POST /api/dispositivos/{codigo}/lecturas` y `simulador_esp32.py` **no toque `domain/` ni `application/`** (commit `2693920`, verificado). El simulador manda lecturas normales, fuera de rango e inválidas.
+- **Propuso la IA:** separar los commits para que el que agrega `POST /api/dispositivos/{codigo}/lecturas` y `simulador_esp32.py` **no toque `domain/` ni `application/`** (commit `a91628b`, verificado). El simulador manda lecturas normales, fuera de rango e inválidas.
 - **Se aceptó / cambió:** aceptado; es el commit que debe enlazar el documento.
 
 ### 7. Materas con sticker NFC (idea de Julián) y conexión del front
@@ -188,6 +188,6 @@
 - [x] ~~Elegir librería de JWT~~ → PyJWT, access token de 60 min (`JWT_MINUTOS_VALIDEZ`). Refresh token: pendiente, fuera de esta entrega.
 - [x] ~~Driver, migraciones, `DATABASE_URL` y secreto~~ → `psycopg`, Alembic, `JWT_SECRET` en `.env`.
 - [ ] Preparar para la sustentación la justificación de implementar gestión de usuarios/autenticación pese a estar listada como "No entra" en la sección 2 del enunciado (fue pedido verbal del profesor, sesión 2026-09-30).
-- [ ] Escribir el documento de arquitectura de la Fase 2 (lo escribe el equipo): diagrama hexagonal con nombres reales, tabla de puertos/adaptadores, dónde se emite y se verifica el JWT, 3 principios SOLID, enlace al commit `2693920` y análisis MQTT.
+- [ ] Escribir el documento de arquitectura de la Fase 2 (lo escribe el equipo): diagrama hexagonal con nombres reales, tabla de puertos/adaptadores, dónde se emite y se verifica el JWT, 3 principios SOLID, enlace al commit `a91628b` y análisis MQTT.
 - [ ] Probar el flujo NFC desde un teléfono real en la red local (`--host 0.0.0.0`, `FRONT_URL` y `CORS_ORIGIN` con la IP del PC) y grabar la URL en un sticker real.
 - [ ] Conectar el ESP32 físico del equipo (falta saber qué sensores tiene para escribir el firmware).
