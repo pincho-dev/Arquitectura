@@ -91,6 +91,13 @@ body {
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
+  text-decoration: none;
+}
+
+.empty-note {
+  grid-column: 1 / -1;
+  color: var(--text-muted, #6b7280);
+  line-height: 1.6;
 }
 
 .plants-grid {

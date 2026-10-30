@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Matera Inteligente - Dashboard</title>
-  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
   <header class="navbar">
     <div class="nav-left">
       <span class="app-tag">MATERA INTELIGENTE</span>
-      <h2 class="welcome-text">Hola, Julián</h2>
+      <h2 class="welcome-text" id="welcome-text">Hola</h2>
     </div>
     <div class="nav-right">
-      <span class="status-summary">📡 3 dispositivos conectados</span>
+      <span class="status-summary" id="status-summary">📡 —</span>
       <button class="logout-btn" id="logout-btn">Cerrar sesión</button>
     </div>
   </header>
@@ -22,9 +22,9 @@
     <div class="section-header">
       <div>
         <h1 class="section-title">MIS PLANTAS</h1>
-        <p class="section-counter" id="plantas-counter">4 plantas registradas</p>
+        <p class="section-counter" id="plantas-counter">Cargando…</p>
       </div>
-      <button class="add-plant-btn">+ Nueva planta</button>
+      <a class="add-plant-btn" href="reclamar.html">+ Nueva planta</a>
     </div>
 
     <!-- Cuadrícula de tarjetas -->
@@ -33,6 +33,7 @@
     </section>
   </main>
 
-  <script src="dashboard.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>

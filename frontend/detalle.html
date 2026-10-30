@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Matera Inteligente - Detalle Planta</title>
-  <link rel="stylesheet" href="detalle.css">
+  <link rel="stylesheet" href="css/detalle.css">
 </head>
 <body>
   <div class="container">
@@ -12,12 +12,12 @@
 
     <header class="detail-header">
       <div>
-        <h1 class="plant-title" id="plant-title">Monstera 1</h1>
-        <p class="plant-species" id="plant-species">Monstera deliciosa</p>
+        <h1 class="plant-title" id="plant-title">Cargando…</h1>
+        <p class="plant-species" id="plant-species"></p>
       </div>
       <div class="header-actions">
-        <span class="live-pill">📡 ESP32-01 · en vivo</span>
-        <a href="vincular.html" class="sublink">Vincular otro dispositivo</a>
+        <span class="live-pill" id="live-pill" hidden></span>
+        <a href="vincular.html" class="sublink" id="vincular-link">Vincular otro dispositivo</a>
       </div>
     </header>
 
@@ -25,24 +25,22 @@
     <section class="status-banner">
       <div class="status-banner-header">
         <span class="subtitle-tag">ESTADO ACTUAL</span>
-        <span class="badge en-riesgo" id="status-badge">En riesgo</span>
+        <span class="badge sin-datos" id="status-badge">—</span>
       </div>
-      <p class="status-desc" id="status-desc">
-        Humedad por debajo del rango recomendado para la especie desde hace 40 minutos.
-      </p>
+      <p class="status-desc" id="status-desc"></p>
 
       <div class="metrics-cards-grid">
         <div class="detail-metric-card">
           <span class="metric-head">💧 HUMEDAD</span>
-          <span class="metric-value" id="current-humidity">34%</span>
+          <span class="metric-value" id="current-humidity">—</span>
         </div>
         <div class="detail-metric-card">
           <span class="metric-head">☀️ LUZ</span>
-          <span class="metric-value" id="current-light">410 lux</span>
+          <span class="metric-value" id="current-light">—</span>
         </div>
         <div class="detail-metric-card">
           <span class="metric-head">🌡️ TEMPERATURA</span>
-          <span class="metric-value" id="current-temp">23°C</span>
+          <span class="metric-value" id="current-temp">—</span>
         </div>
       </div>
     </section>
@@ -80,6 +78,7 @@
     </section>
   </div>
 
-  <script src="detalle.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/detalle.js"></script>
 </body>
 </html>

@@ -97,14 +97,19 @@ body {
   color: var(--text-muted);
 }
 
-.badge.en-riesgo {
-  background: #fef3c7;
-  color: #b45309;
+.badge {
   padding: 0.3rem 0.8rem;
   border-radius: 8px;
   font-weight: 700;
   font-size: 0.8rem;
 }
+
+.badge.saludable { background: #e8f8ee; color: #15803d; }
+.badge.en-riesgo { background: #fef3c7; color: #b45309; }
+.badge.critico   { background: #fee2e2; color: #b91c1c; }
+.badge.sin-datos { background: #f3f4f6; color: #6b7280; }
+
+.live-pill[hidden] { display: none; }
 
 .status-desc {
   font-size: 0.95rem;

@@ -1,0 +1,85 @@
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  color: var(--primary-green);
+}
+
+.reclamo-estado {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-radius: 16px;
+  background-color: #edf2eb;
+  color: var(--primary-green);
+  line-height: 1.5;
+}
+
+.spinner {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(44, 73, 53, 0.2);
+  border-top-color: var(--primary-green);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+.spinner[hidden] {
+  display: none;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+.nfc-ilustracion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1.25rem;
+  font-size: 2.5rem;
+}
+
+.nfc-ondas {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-green);
+  letter-spacing: -2px;
+  animation: pulso 1.4s ease-in-out infinite;
+}
+
+@keyframes pulso {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.nfc-texto {
+  margin-bottom: 1.5rem;
+  color: var(--text-main);
+  line-height: 1.6;
+  text-align: center;
+}
+
+#escanear-btn {
+  margin-bottom: 1.25rem;
+}
+
+.manual {
+  margin-bottom: 1.5rem;
+}
+
+.manual summary {
+  cursor: pointer;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

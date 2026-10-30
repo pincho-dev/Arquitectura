@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vincular Dispositivo ESP32</title>
-  <link rel="stylesheet" href="vincular.css">
+  <link rel="stylesheet" href="css/vincular.css">
 </head>
 <body>
   <div class="card-modal">
-    <a href="dashboard.html" class="back-link">← Volver a la planta</a>
+    <a href="dashboard.html" class="back-link" id="volver-link">← Volver a la planta</a>
 
     <header class="modal-header">
-      <span class="sub-headline">MONSTERA 1</span>
+      <span class="sub-headline" id="planta-nombre"></span>
       <h1 class="main-headline">Vincular dispositivo ESP32</h1>
       <p class="description">
         Cada dispositivo tiene su propio token, con alcance limitado a reportar lecturas de esta planta — nunca al token de usuario.
@@ -24,7 +24,7 @@
       <div class="step-content">
         <label class="step-label">Copia el token de dispositivo</label>
         <div class="token-container">
-          <input type="text" id="device-token" value="dev_esp32_f1a9c2e7b3d84091" readonly>
+          <input type="text" id="device-token" value="Generando…" readonly>
           <button id="copy-btn" class="copy-btn">Copiar</button>
         </div>
       </div>
@@ -35,7 +35,7 @@
       <div class="step-badge">2</div>
       <div class="step-content">
         <label class="step-label">Pégalo en el firmware del ESP32</label>
-        <pre class="code-preview"><code>#define DEVICE_TOKEN "dev_esp32_f1a9c2e7..."</code></pre>
+        <pre class="code-preview"><code id="firmware-preview">#define DEVICE_TOKEN "…"</code></pre>
       </div>
     </div>
 
@@ -48,14 +48,15 @@
         <div class="waiting-box">
           <div class="spinner"></div>
           <div>
-            <div class="waiting-title">Esperando conexión del dispositivo...</div>
-            <div class="waiting-subtitle">POST /api/dispositivos/{id}/lecturas aún no reporta</div>
+            <div class="waiting-title" id="waiting-title">Esperando conexión del dispositivo...</div>
+            <div class="waiting-subtitle" id="waiting-subtitle">POST /api/dispositivos/{id}/lecturas aún no reporta</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="vincular.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/vincular.js"></script>
 </body>
 </html>

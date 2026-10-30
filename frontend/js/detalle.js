@@ -1,82 +1,78 @@
-const API_BASE_URL = 'http://localhost:5000/api';
-
 // Obtener ID de la planta desde el query string: detalle.html?id=1
 const params = new URLSearchParams(window.location.search);
-const PLANTA_ID = params.get('id') || 1;
+const PLANTA_ID = params.get('id');
 
-// Mock de servicio preparado para Flask
-async function obtenerEstadoEHistorialPlanta(id) {
-  const token = localStorage.getItem('jwt_token');
+// Polling periódico (cada 5 segundos) según requerimiento R6 (sin WebSockets)
+const POLLING_INTERVAL_MS = 5000;
 
-  /* CUANDO CONECTES FLASK:
-  const response = await fetch(`${API_BASE_URL}/plantas/${id}/estado`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return await response.json();
-  */
-
-  // Estructura lista para recibir lecturas persistidas desde la ESP32
-  return new Promise((resolve) => {
-    resolve({
-      id: id,
-      nombre: "Monstera 1",
-      especie: "Monstera deliciosa",
-      dispositivo_id: "ESP32-01",
-      estado: "En riesgo",
-      diagnostico: "Humedad por debajo del rango recomendado para la especie desde hace 40 minutos.",
-      lectura_actual: {
-        humedad: 34,
-        luz: 410,
-        temperatura: 23
-      },
-      historial: [
-        { hora: "18:42", humedad: 34, luz: 410, temp: 23, origen: "ESP32-01" },
-        { hora: "18:37", humedad: 36, luz: 405, temp: 23, origen: "ESP32-01" },
-        { hora: "18:32", humedad: 39, luz: 398, temp: 22, origen: "ESP32-01" },
-        { hora: "18:20", humedad: 45, luz: 390, temp: 22, origen: "Formulario" },
-        { hora: "18:12", humedad: 48, luz: 380, temp: 22, origen: "ESP32-01" },
-        { hora: "18:02", humedad: 52, luz: 375, temp: 21, origen: "ESP32-01" }
-      ]
-    });
-  });
+function hora(fechaIso) {
+  return new Date(fechaIso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function renderizarDetalle(data) {
+  document.title = `Matera Inteligente - ${data.nombre}`;
   document.getElementById('plant-title').textContent = data.nombre;
   document.getElementById('plant-species').textContent = data.especie;
-  document.getElementById('status-desc').textContent = data.diagnostico;
 
-  // Actualizar métricas destacadas
-  document.getElementById('current-humidity').textContent = `${data.lectura_actual.humedad}%`;
-  document.getElementById('current-light').textContent = `${data.lectura_actual.luz} lux`;
-  document.getElementById('current-temp').textContent = `${data.lectura_actual.temperatura}°C`;
+  const badge = document.getElementById('status-badge');
+  badge.className = `badge ${ESTADO_CLASE[data.estado]}`;
+  badge.textContent = data.estado_texto;
 
-  // Actualizar tabla
+  const fueraDeRango = data.parametros.filter(p => p.estado !== 'OPTIMO')
+    .map(p => `${p.nombre} ${p.estado === 'BAJO' ? 'por debajo' : 'por encima'} del rango (${p.rango_optimo[0]}–${p.rango_optimo[1]})`);
+  document.getElementById('status-desc').textContent = data.lectura_actual
+    ? [fueraDeRango.join(' · '), data.recomendaciones].filter(Boolean).join('. ')
+    : 'Todavía no hay lecturas de esta planta.';
+
+  const lectura = data.lectura_actual || {};
+  document.getElementById('current-humidity').textContent = formatoValor(lectura.humedad, '%');
+  document.getElementById('current-light').textContent = formatoValor(lectura.luz, ' lux');
+  document.getElementById('current-temp').textContent = formatoValor(lectura.temperatura, '°C');
+
+  const pill = document.getElementById('live-pill');
+  const dispositivo = data.dispositivos[0];
+  pill.hidden = !dispositivo;
+  if (dispositivo) {
+    pill.textContent = `📡 ${dispositivo.codigo} · ${dispositivo.conectado ? 'en vivo' : 'desconectado'}`;
+  }
+
   const tbody = document.getElementById('readings-table-body');
   tbody.innerHTML = '';
   data.historial.forEach(r => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${r.hora}</td>
-      <td>${r.humedad}%</td>
-      <td>${r.luz} lux</td>
-      <td>${r.temp}°C</td>
-      <td>${r.origen}</td>
+      <td>${hora(r.medida_en)}</td>
+      <td>${formatoValor(r.humedad, '%')}</td>
+      <td>${formatoValor(r.luz, ' lux')}</td>
+      <td>${formatoValor(r.temperatura, '°C')}</td>
+      <td>${r.origen === 'dispositivo' ? escaparHtml(r.dispositivo) : 'Formulario'}</td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-// Carga inicial
-obtenerEstadoEHistorialPlanta(PLANTA_ID).then(renderizarDetalle);
+function mostrarError(mensaje) {
+  document.getElementById('plant-title').textContent = 'No disponible';
+  document.getElementById('status-desc').textContent = mensaje;
+}
 
-// Polling periódico (cada 5 segundos) según requerimiento R6 (sin WebSockets)
-const POLLING_INTERVAL_MS = 5000;
-setInterval(async () => {
+async function actualizar() {
   try {
-    const dataActualizada = await obtenerEstadoEHistorialPlanta(PLANTA_ID);
-    renderizarDetalle(dataActualizada);
-  } catch (error) {
-    console.warn("Fallo de sondeo periódico:", error);
+    renderizarDetalle(await api(`/plantas/${PLANTA_ID}/estado`));
+    return true;
+  } catch (err) {
+    // 403: la planta es de otro usuario (regla de propiedad del dominio).
+    mostrarError(err.status === 403 ? '🔒 Esta planta pertenece a otro usuario.' : err.message);
+    return err.status !== 403 && err.status !== 404;
   }
-}, POLLING_INTERVAL_MS);
+}
+
+if (Sesion.exigir()) {
+  document.getElementById('vincular-link').href = `vincular.html?planta_id=${PLANTA_ID}`;
+  actualizar().then(seguir => {
+    if (!seguir) return;
+    const intervalo = setInterval(async () => {
+      if (!(await actualizar())) clearInterval(intervalo);
+    }, POLLING_INTERVAL_MS);
+  });
+}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Matera Inteligente - Iniciar Sesión</title>
-  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
   <div class="auth-card">
@@ -23,6 +23,11 @@
     </div>
 
     <form id="auth-form">
+      <div class="form-group" id="grupo-nombre" hidden>
+        <label for="nombre">NOMBRE</label>
+        <input type="text" id="nombre" placeholder="Tu nombre" autocomplete="name">
+      </div>
+
       <div class="form-group">
         <label for="email">CORREO</label>
         <input type="email" id="email" placeholder="tu@correo.com" required>
@@ -30,8 +35,10 @@
 
       <div class="form-group">
         <label for="password">CONTRASEÑA</label>
-        <input type="password" id="password" placeholder="••••••••" required>
+        <input type="password" id="password" placeholder="••••••••" minlength="8" required>
       </div>
+
+      <p class="auth-error" id="auth-error" role="alert" hidden></p>
 
       <button type="submit" id="submit-btn" class="submit-btn">
         <span>Entrar</span>
@@ -44,6 +51,7 @@
     </p>
   </div>
 
-  <script src="auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
 </body>
 </html>

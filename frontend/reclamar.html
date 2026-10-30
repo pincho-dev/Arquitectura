@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Agregar matera</title>
+  <link rel="stylesheet" href="css/auth.css">
+  <link rel="stylesheet" href="css/reclamar.css">
+</head>
+<body>
+  <div class="auth-card">
+    <a href="dashboard.html" class="back-link">← Mis plantas</a>
+
+    <div class="brand-header">
+      <div class="brand-icon" id="icono">📱</div>
+      <div>
+        <span class="brand-subtitle">MATERA INTELIGENTE</span>
+        <h1 class="brand-title" id="titulo">Agregar matera</h1>
+      </div>
+    </div>
+
+    <!-- Se abrió desde el sticker: reclamo automático -->
+    <section id="vista-reclamo" hidden>
+      <div class="reclamo-estado">
+        <div class="spinner" id="spinner"></div>
+        <p id="reclamo-mensaje">Agregando la matera a tu cuenta…</p>
+      </div>
+    </section>
+
+    <!-- Se abrió sin sticker: instrucciones y alternativas -->
+    <section id="vista-instrucciones" hidden>
+      <div class="nfc-ilustracion">
+        <span class="nfc-telefono">📱</span>
+        <span class="nfc-ondas">)))</span>
+        <span class="nfc-matera">🪴</span>
+      </div>
+      <p class="nfc-texto">
+        Acerca tu teléfono al <strong>sticker NFC</strong> de la matera. Se abrirá esta app
+        y la planta quedará agregada a tu cuenta automáticamente.
+      </p>
+
+      <button type="button" class="submit-btn" id="escanear-btn" hidden>
+        <span>Escanear sticker</span><span class="arrow">📡</span>
+      </button>
+
+      <details class="manual">
+        <summary>¿No tienes NFC? Ingresa el código del sticker</summary>
+        <form id="manual-form">
+          <div class="form-group">
+            <label for="codigo">CÓDIGO DE LA MATERA</label>
+            <input type="text" id="codigo" placeholder="MAT-1A2B" required>
+          </div>
+          <div class="form-group">
+            <label for="clave">CLAVE DEL STICKER</label>
+            <input type="text" id="clave" placeholder="Impresa bajo el sticker" required>
+          </div>
+          <button type="submit" class="submit-btn"><span>Agregar matera</span><span class="arrow">→</span></button>
+        </form>
+      </details>
+    </section>
+
+    <p class="auth-error" id="reclamo-error" role="alert" hidden></p>
+
+    <p class="auth-footer-note">
+      Cada matera tiene un único dueño: el sticker solo se puede usar una vez.
+    </p>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/reclamar.js"></script>
+</body>
+</html>
