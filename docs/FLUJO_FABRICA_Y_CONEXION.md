@@ -2,8 +2,6 @@
 
 Guía para el equipo: qué pasa desde que se "fabrica" una matera hasta que sus lecturas aparecen en vivo en el celular del dueño. Los diagramas son Mermaid y GitHub los dibuja solo.
 
-> Esta guía explica el flujo para poder probarlo. **No es el documento de arquitectura** de la entrega, que lo escribe el equipo.
-
 ## 1. La idea en una imagen: tres secretos, tres dueños
 
 Cada matera tiene un **código** (`MAT-1A2B`) y la fábrica le genera dos secretos. En la base de datos solo quedan sus **hashes**: si se filtra la BD, no sirven para nada.

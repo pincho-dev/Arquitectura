@@ -220,6 +220,7 @@
   - Front: `reclamar.html` explica cómo escanear el QR (se quitó Web NFC); simulador con `--escanear-qr` (`--tocar-nfc` sigue funcionando como alias).
   - `docs/FLUJO_FABRICA_Y_CONEXION.md`: diagramas Mermaid de los secretos, la fábrica, login + reclamo, el handshake de la ESP y el de `/ws/app`.
   - Probado: 148 tests del backend y 5 de la estación; migración arriba, abajo y arriba otra vez; contra Postgres: estación solo QR, estación con RFID simulado, identificar, tarjeta repetida (409), reclamo con clave mala (404) y buena, y renombrar. **El sketch del RC522 no se compiló** (no hay toolchain de Arduino en el PC) **ni se probó con el lector real**.
+- **Cambio de alcance:** el equipo avisó que el profesor **ya no pide documento**; se quitaron las referencias y los pendientes pasaron a ser preparación de la sustentación.
 - **Nota de honestidad:** igual que en la integración del WebSocket, este código no lo escribió el equipo. Para la sustentación hay que poder explicar por qué la tarjeta no participa en el vínculo y por qué el QR no lleva el token.
 
 ---
@@ -233,16 +234,16 @@
 - [x] ~~Decidir si `especies` se queda en CSV o migra a Postgres~~ → resuelto 2026-10-29: ambas, elegibles por `TABLA_REFERENCIA` (R4); esquema normalizado.
 - [ ] Decidir si se modela histórico de mediciones en el diagrama especulativo de evolución.
 - [x] ~~El equipo de front iba a reemplazar el `<form>` por otro patrón de UI~~ → resuelto: ya llegó a `main` y se fusionó (sesión 2026-09-18, punto 6). Pendiente real: que el equipo de front revise por qué les sigue saliendo "índice de vitalidad" en el código que generan.
-- [ ] Justificar en el documento (6.b.6) la decisión de rutas propias (`/diagnostico`, `/especies`) en vez de las del Anexo A (`/api/v1/...`), y la forma del cuerpo de error elegida.
+- [ ] Tener lista para la sustentación la justificación de las rutas propias (`/diagnostico`, `/especies`) en vez de las del Anexo A (`/api/v1/...`), y la forma del cuerpo de error elegida.
 - [x] ~~Implementar el esquema de la sesión 2026-09-30 vía migraciones~~ → resuelto 2026-10-29 con Alembic.
 - [x] ~~Elegir librería de JWT~~ → PyJWT, access token de 60 min (`JWT_MINUTOS_VALIDEZ`). Refresh token: pendiente, fuera de esta entrega.
 - [x] ~~Driver, migraciones, `DATABASE_URL` y secreto~~ → `psycopg`, Alembic, `JWT_SECRET` en `.env`.
 - [ ] Preparar para la sustentación la justificación de implementar gestión de usuarios/autenticación pese a estar listada como "No entra" en la sección 2 del enunciado (fue pedido verbal del profesor, sesión 2026-09-30).
-- [ ] Escribir el documento de arquitectura de la Fase 2 (lo escribe el equipo): diagrama hexagonal con nombres reales, tabla de puertos/adaptadores, dónde se emite y se verifica el JWT, 3 principios SOLID, enlace al commit `a91628b` y análisis MQTT.
+- [x] ~~Escribir el documento de arquitectura de la Fase 2~~ → el profesor ya no pide documento (avisado por el equipo el 2026-11-26).
 - [ ] Probar el flujo del QR desde un teléfono real en la red local (`--host 0.0.0.0`, `FRONT_URL` y `CORS_ORIGIN` con la IP del PC).
 - [ ] Conectar el ESP32 físico del equipo (falta saber qué sensores tiene para escribir el firmware).
 - [ ] Compilar y subir el nuevo `firmware/matera_esp32/matera_esp32.ino` (WebSocket) a la ESP32 real; instalar las bibliotecas WebSockets y ArduinoJson.
 - [x] ~~Probar la estación con el lector NFC USB real y stickers NTAG~~ → el equipo compró un RC522: la fábrica pasó a QR + RFID opcional (sesión 2026-11-26).
 - [ ] Compilar `firmware/estacion_rfid/` (biblioteca MFRC522), cablear el RC522 a 3.3 V y probar `estacion.py --rfid` y `--identificar` con las tarjetas reales.
-- [ ] Justificar en el documento por qué el front usa WebSocket si R6 pedía consulta periódica (directriz verbal del profesor; la consulta periódica quedó como respaldo).
+- [ ] Tener lista para la sustentación la explicación de por qué el front usa WebSocket si R6 pedía consulta periódica (directriz verbal del profesor; la consulta periódica quedó como respaldo).
 - [ ] Gamificación: cerrar pesos del puntaje, ranking global o entre amigos, temporadas; tabla de sesiones de conexión para medir el tiempo conectado (siguiente paso, guía ya dada); ~~`PATCH /api/plantas/{id}` para el nombre~~ (hecho 2026-11-26); galería de fotos (puerto `AlmacenFotos`, quitar EXIF).

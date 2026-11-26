@@ -7,7 +7,7 @@ Proyecto de corte — Arquitectura de Software. Servicio que, dadas unas medicio
 ```
 backend/     API Flask (dominio, aplicación, presentación, infraestructura)
 frontend/    Cliente HTML/CSS/JS estático, servido por separado del backend
-docs/        Documento de arquitectura, diagramas y bitácora de uso de IA
+docs/        Diagramas de flujo y bitácora de uso de IA
 fabrica/     Estación de fábrica: QR de reclamo + config del ESP32 (lector RFID RC522 opcional)
 firmware/    Firmware del ESP32 de la matera (WebSocket) y del puente USB del lector RC522
 ```
@@ -158,6 +158,6 @@ pytest
 
 Las pruebas usan dobles de prueba para los puertos de salida: corren sin levantar el servidor y sin archivos ni base de datos.
 
-## Documento de arquitectura
+## Documentación
 
-Ver [`docs/`](./docs) — incluye el documento de arquitectura y la [bitácora de uso de IA](./docs/BITACORA_IA.md).
+Ver [`docs/`](./docs): el [flujo de la fábrica, el reclamo y el handshake](./docs/FLUJO_FABRICA_Y_CONEXION.md) y la [bitácora de uso de IA](./docs/BITACORA_IA.md).
