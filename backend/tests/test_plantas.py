@@ -110,6 +110,17 @@ class _RepositorioDispositivosFalso(RepositorioDispositivos):
         dispositivo.planta_id = planta_id
         return True
 
+    def buscar_por_codigo(self, codigo):
+        return next((d for d in self.dispositivos if d.codigo == codigo), None)
+
+    def descartar_sin_reclamar(self, codigo):
+        dispositivo = self.buscar_por_codigo(codigo)
+        if dispositivo is None or dispositivo.planta_id is not None or codigo not in self.claves:
+            return False
+        self.dispositivos.remove(dispositivo)
+        del self.claves[codigo]
+        return True
+
 
 class _GeneradorFalso(GeneradorTokensDispositivo):
     def generar(self):

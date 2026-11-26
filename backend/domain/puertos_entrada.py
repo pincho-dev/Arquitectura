@@ -85,3 +85,16 @@ class CompartirPlantaPort(ABC):
         """Un dueño agrega a otro usuario registrado como co-dueño.
         Devuelve la Planta actualizada. Lanza AccesoDenegado, InvitadoNoRegistrado."""
         pass
+
+
+class EnviarOrdenPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, codigo, nombre_orden, parametros=None):
+        """Devuelve el id de la orden enviada a la matera."""
+        pass
+
+
+class DescartarMateraPort(ABC):
+    @abstractmethod
+    def ejecutar(self, codigo):
+        pass

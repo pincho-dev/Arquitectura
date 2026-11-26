@@ -26,3 +26,6 @@ materas_fabricadas/
 
 # Firmware: WiFi y token de la matera
 firmware/**/config.h
+
+# Estación de fábrica: configs del firmware con tokens y WiFi
+fabrica/salida/

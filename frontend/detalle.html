@@ -86,12 +86,13 @@
       </div>
 
       <div class="polling-note">
-        El front se actualiza solo con una consulta periódica a <code>GET /api/plantas/{id}/estado</code> cada pocos segundos (sin WebSockets, según R6 del enunciado)
+        Se actualiza en vivo: el backend avisa por WebSocket (<code>/ws/app</code>) cada lectura y cada conexión o desconexión de la matera. Si el WebSocket se cae, vuelve a consultar <code>GET /api/plantas/{id}/estado</code> cada 5 segundos.
       </div>
     </section>
   </div>
 
   <script src="js/api.js"></script>
+  <script src="js/tiempo-real.js"></script>
   <script src="js/detalle.js"></script>
 </body>
 </html>

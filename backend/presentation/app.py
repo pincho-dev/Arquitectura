@@ -5,18 +5,22 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_sock import Sock
 import os
 
+from application.avisos import AvisarDuenos
 from application.compartir_planta import CompartirPlanta
+from application.enviar_orden import EnviarOrden
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
 from application.crear_planta import CrearPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
 from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
 from application.iniciar_sesion import IniciarSesion
-from application.materas import FabricarMatera, ReclamarMatera
+from application.materas import DescartarMatera, FabricarMatera, ReclamarMatera
 from application.registrar_usuario import RegistrarUsuario
 from infrastructure.autenticador_dispositivos_bd import AutenticadorDispositivosBd
+from infrastructure.canal_websocket import CanalAppWebSocket, CanalDispositivosWebSocket
 from infrastructure.db.conexion import crear_engine
 from infrastructure.especie_lookup_bd import EspecieLookupBd
 from infrastructure.especie_lookup_csv import EspecieLookupCsv
@@ -32,15 +36,24 @@ from domain.puertos import EspecieNoEncontrada
 from application.listar_especies import ListarEspecies
 from presentation.api_auth import crear_api_auth
 from presentation.api_dispositivos import crear_api_dispositivos
+from presentation.api_fabrica import crear_api_fabrica
 from presentation.api_plantas import crear_api_mis_dispositivos, crear_api_plantas
 from presentation.cli_fabrica import registrar_cli_fabrica
 from presentation.seguridad import crear_requiere_usuario
+from presentation.ws_app import registrar_websocket_app
+from presentation.ws_dispositivos import registrar_websocket_dispositivos
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 app = Flask(__name__)
 # Varios orígenes separados por coma: el front en el PC y en el teléfono (red local).
 CORS(app, origins=[o.strip() for o in os.environ.get("CORS_ORIGIN", "*").split(",")])
+
+# WebSockets (flask-sock). El servidor manda un ping cada WS_PING_S segundos:
+# si el ESP32 (o la pestaña) no responde antes del siguiente, se cierra la
+# conexión. Así se detecta una matera desenchufada de golpe.
+app.config["SOCK_SERVER_OPTIONS"] = {"ping_interval": int(os.environ.get("WS_PING_S", "20"))}
+sock = Sock(app)
 
 # ---- Punto de composición: único lugar donde se decide qué adaptador
 # ---- implementa cada puerto. El engine no abre conexión hasta usarse.
@@ -73,7 +86,13 @@ repositorio_plantas = RepositorioPlantasBd(engine)
 historial_lecturas = HistorialLecturasBd(engine)
 repositorio_dispositivos = RepositorioDispositivosBd(engine)
 generador_tokens_dispositivo = GeneradorTokensDispositivoAleatorio()
-registrar_lectura = RegistrarLectura(repositorio_plantas, historial_lecturas, caso_de_uso)
+
+# Tiempo real: qué materas y qué pestañas tienen un WebSocket abierto.
+canal_dispositivos = CanalDispositivosWebSocket()
+canal_app = CanalAppWebSocket()
+avisos = AvisarDuenos(repositorio_plantas, canal_app)
+
+registrar_lectura = RegistrarLectura(repositorio_plantas, historial_lecturas, caso_de_uso, avisos)
 
 listar_plantas = ListarPlantas(repositorio_plantas, historial_lecturas, repositorio_dispositivos, caso_de_uso)
 
@@ -86,19 +105,35 @@ app.register_blueprint(crear_api_plantas(
     ReclamarMatera(repositorio_dispositivos, repositorio_plantas),
     CompartirPlanta(repositorio_plantas, repositorio_usuarios),
     requiere_usuario,
+    canal_dispositivos,
 ))
-app.register_blueprint(crear_api_mis_dispositivos(listar_plantas, requiere_usuario))
+app.register_blueprint(crear_api_mis_dispositivos(
+    listar_plantas, requiere_usuario,
+    EnviarOrden(repositorio_dispositivos, repositorio_plantas, canal_dispositivos),
+    canal_dispositivos,
+))
 
-# Fábrica simulada (flask fabricar-matera): otro adaptador de entrada, por consola.
-registrar_cli_fabrica(
-    app,
-    FabricarMatera(repositorio_dispositivos, generador_tokens_dispositivo),
-    os.environ.get("FRONT_URL", "http://localhost:5500"),
+# Fábrica: el mismo caso de uso por dos adaptadores de entrada, la consola
+# (flask fabricar-matera) y la API de la estación con lector NFC (fabrica/).
+url_front = os.environ.get("FRONT_URL", "http://localhost:5500")
+fabricar_matera = FabricarMatera(repositorio_dispositivos, generador_tokens_dispositivo)
+registrar_cli_fabrica(app, fabricar_matera, url_front)
+app.register_blueprint(crear_api_fabrica(
+    fabricar_matera, DescartarMatera(repositorio_dispositivos),
+    os.environ.get("FABRICA_CLAVE", ""), url_front,
+))
+
+# Adaptadores de entrada de dispositivos (R2): HTTP y WebSocket reutilizan el
+# mismo puerto RegistrarLecturaPort que el formulario del front.
+autenticador_dispositivos = AutenticadorDispositivosBd(engine)
+app.register_blueprint(crear_api_dispositivos(registrar_lectura, autenticador_dispositivos))
+registrar_websocket_dispositivos(
+    sock, autenticador_dispositivos, registrar_lectura, canal_dispositivos, avisos,
+    intervalo_s=int(os.environ.get("ESP_INTERVALO_S", "10")),
 )
 
-# Adaptador de entrada de dispositivos (R2): reutiliza el mismo puerto
-# RegistrarLecturaPort que el formulario del front.
-app.register_blueprint(crear_api_dispositivos(registrar_lectura, AutenticadorDispositivosBd(engine)))
+# Adaptador de salida hacia el front: avisos en vivo por WebSocket.
+registrar_websocket_app(sock, canal_app, tokens, listar_plantas, canal_dispositivos)
 
 # Bitácora en memoria de las últimas solicitudes, solo para el panel de
 # estado (GET /estado). No es persistencia de mediciones (fuera de

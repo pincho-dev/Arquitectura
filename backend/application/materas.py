@@ -1,5 +1,5 @@
 from domain.plantas import ClaveDeReclamoInvalida, DatosDePlantaInvalidos, MateraYaReclamada
-from domain.puertos_entrada import FabricarMateraPort, ReclamarMateraPort
+from domain.puertos_entrada import DescartarMateraPort, FabricarMateraPort, ReclamarMateraPort
 
 
 class FabricarMatera(FabricarMateraPort):
@@ -48,3 +48,16 @@ class ReclamarMatera(ReclamarMateraPort):
 
         dispositivo.planta_id = planta.id
         return planta, dispositivo
+
+
+class DescartarMatera(DescartarMateraPort):
+    """La estación de fábrica no pudo grabar el sticker: se borra la matera
+    reservada para no dejar una sin sticker. Nunca borra una ya reclamada."""
+
+    def __init__(self, repositorio_dispositivos):
+        self.repositorio_dispositivos = repositorio_dispositivos
+
+    def ejecutar(self, codigo):
+        codigo = codigo.strip().upper()
+        if not self.repositorio_dispositivos.descartar_sin_reclamar(codigo):
+            raise MateraYaReclamada(f"La matera {codigo} no existe o ya pertenece a una cuenta.")

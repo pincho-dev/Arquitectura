@@ -11,12 +11,12 @@ El simulador del ESP32 lee ese archivo.
 import json
 import secrets
 from pathlib import Path
-from urllib.parse import urlencode
 
 import click
 
 from domain.plantas import CodigoDispositivoEnUso
 from domain.puertos import EspecieNoEncontrada
+from presentation.sticker import url_sticker
 
 CARPETA_SALIDA = Path(__file__).resolve().parents[2] / "materas_fabricadas"
 
@@ -36,17 +36,15 @@ def registrar_cli_fabrica(app, fabricar_matera, url_front):
             except (CodigoDispositivoEnUso, EspecieNoEncontrada) as error:
                 raise click.ClickException(str(error))
 
-            url_sticker = f"{url_front.rstrip('/')}/reclamar.html?" + urlencode(
-                {"codigo": dispositivo.codigo, "clave": clave}
-            )
+            url = url_sticker(url_front, dispositivo.codigo, clave)
             archivo = CARPETA_SALIDA / f"{dispositivo.codigo}.json"
             archivo.write_text(json.dumps({
                 "codigo": dispositivo.codigo,
                 "especie": dispositivo.especie,
                 "token_firmware": token,
-                "url_sticker_nfc": url_sticker,
+                "url_sticker_nfc": url,
             }, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
             click.echo(f"Matera {dispositivo.codigo} ({dispositivo.especie}) fabricada")
-            click.echo(f"  sticker NFC: {url_sticker}")
+            click.echo(f"  sticker NFC: {url}")
             click.echo(f"  firmware:    {archivo}")

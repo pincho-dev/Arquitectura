@@ -81,3 +81,16 @@
   font-size: 0.82rem;
   color: var(--text-muted);
 }
+
+.acciones { white-space: nowrap; }
+.acciones button {
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.6rem;
+  margin-right: 0.3rem;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+}
+.acciones button:disabled { opacity: 0.45; cursor: not-allowed; }

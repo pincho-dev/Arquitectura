@@ -18,14 +18,25 @@ Uso con una matera de la fábrica simulada (flujo NFC):
 Uso con un dispositivo vinculado a mano:
     python simulador_esp32.py --codigo ESP32-01 --token dev_xxx --intervalo 2 --perfil helecho
 
+Modo WebSocket (como el firmware real): una sola conexión que queda abierta
+en ws://.../ws/dispositivos; el backend sabe al instante si la matera está
+conectada y le puede mandar órdenes (parpadear, reportar, regar):
+    python simulador_esp32.py --matera materas_fabricadas/MAT-1A2B.json --ws
+
+    Para ver el heartbeat, congela el proceso como si se fuera la luz:
+    kill -STOP <pid>  -> a los ~2 pings sin respuesta el backend la marca desconectada
+    kill -CONT <pid>  -> se reconecta sola
+
 El token también puede ir en la variable de entorno MATERA_TOKEN_DISPOSITIVO.
-Solo usa la librería estándar de Python: no requiere instalar nada.
+El modo HTTP solo usa la librería estándar; --ws necesita websocket-client
+(ya está en backend/requirements.txt).
 """
 import argparse
 import json
 import os
 import random
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -118,6 +129,89 @@ def enviar(url, token, cuerpo):
             return error.code, {}
 
 
+def simular_por_websocket(args, sensor, rnd):
+    try:
+        import websocket
+    except ImportError:
+        sys.exit("--ws necesita websocket-client: pip install websocket-client")
+
+    url = args.url.rstrip("/").replace("https://", "wss://").replace("http://", "ws://") + "/ws/dispositivos"
+    print(f"Simulando {args.codigo} (perfil {args.perfil}) por WebSocket -> {url}. Ctrl+C para salir.")
+
+    def hora():
+        return f"[{datetime.now():%H:%M:%S}]"
+
+    enviadas, espera = 0, 1
+    while args.cantidad == 0 or enviadas < args.cantidad:
+        try:
+            ws = websocket.create_connection(url, timeout=10)
+        except (OSError, websocket.WebSocketException) as error:
+            print(f"{hora()} sin conexión con el backend ({error}); reintento en {espera}s")
+            time.sleep(espera)
+            espera = min(espera * 2, 30)
+            continue
+
+        ws.send(json.dumps({"tipo": "hola", "codigo": args.codigo, "token": args.token, "firmware": "simulador"}))
+        bienvenida = json.loads(ws.recv() or "{}")
+        if bienvenida.get("tipo") != "bienvenida":
+            print(f"{hora()} rechazada: {bienvenida.get('error')}: {bienvenida.get('mensaje')}")
+            return 1
+        espera = 1
+        intervalo = args.intervalo or bienvenida.get("intervalo_s", 10)
+        print(f"{hora()} 🔌 conectada como {bienvenida['codigo']} "
+              f"({'reclamada' if bienvenida['reclamada'] else 'sin dueño: toca el sticker NFC'}), lectura cada {intervalo}s")
+
+        abierta = threading.Event()
+        abierta.set()
+        reportar_ya = threading.Event()
+
+        def escuchar():
+            # Este hilo también hace que se respondan los ping del servidor.
+            try:
+                while True:
+                    mensaje = json.loads(ws.recv() or "{}")
+                    tipo = mensaje.get("tipo")
+                    if tipo == "orden":
+                        orden = mensaje["orden"]
+                        icono = {"parpadear": "💡💡💡", "regar": "💧", "reportar": "📤"}.get(orden, "?")
+                        print(f"{hora()} {icono} orden '{orden}' {mensaje.get('parametros') or ''}")
+                        if orden == "reportar":
+                            reportar_ya.set()
+                        ws.send(json.dumps({"tipo": "orden_ok", "id": mensaje["id"]}))
+                    elif tipo == "lectura_ok":
+                        print(f"{hora()}   -> {mensaje['estado']}")
+                    elif mensaje.get("error") == "MATERA_SIN_DUENO":
+                        print(f"{hora()}   -> esperando a que alguien toque el sticker NFC y reclame la matera...")
+                    elif tipo == "error":
+                        print(f"{hora()}   -> {mensaje.get('error')}: {mensaje.get('mensaje')}")
+            except (OSError, ValueError, websocket.WebSocketException):
+                pass
+            finally:
+                abierta.clear()
+                reportar_ya.set()
+
+        threading.Thread(target=escuchar, daemon=True).start()
+        anterior = None
+        while abierta.is_set() and (args.cantidad == 0 or enviadas < args.cantidad):
+            tipo, cuerpo = construir_envio(sensor, args.codigo, rnd, args.prob_fuera, args.prob_invalido, anterior)
+            cuerpo = {k: v for k, v in cuerpo.items() if k != "dispositivo"}
+            try:
+                ws.send(json.dumps({"tipo": "lectura", **cuerpo}))
+            except (OSError, websocket.WebSocketException):
+                break
+            anterior = cuerpo
+            valores = {k: cuerpo.get(k) for k in ("humedad", "luz", "temperatura")}
+            print(f"{hora()} {tipo:<26} {valores}")
+            enviadas += 1
+            reportar_ya.wait(intervalo)
+            reportar_ya.clear()
+
+        ws.close()
+        if args.cantidad == 0 or enviadas < args.cantidad:
+            print(f"{hora()} ⚠ se cerró la conexión; reconectando...")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="Simulador del ESP32 de la matera inteligente.")
     parser.add_argument("--url", default="http://localhost:5000", help="URL base del backend")
@@ -126,7 +220,8 @@ def main():
     parser.add_argument("--codigo", help="Código del dispositivo, ej. ESP32-01")
     parser.add_argument("--token", default=os.environ.get("MATERA_TOKEN_DISPOSITIVO"),
                         help="Token del dispositivo (o variable MATERA_TOKEN_DISPOSITIVO)")
-    parser.add_argument("--intervalo", type=float, default=5, help="Segundos entre lecturas (default 5)")
+    parser.add_argument("--ws", action="store_true", help="Conectarse por WebSocket (como el firmware) en vez de HTTP")
+    parser.add_argument("--intervalo", type=float, help="Segundos entre lecturas (default 5; con --ws, lo que diga el backend)")
     parser.add_argument("--cantidad", type=int, default=0, help="Lecturas a enviar; 0 = sin fin")
     parser.add_argument("--perfil", choices=sorted(PERFILES), help="Condiciones típicas a simular (default: la especie de la matera, o potos)")
     parser.add_argument("--prob-fuera", type=float, default=0.15, help="Probabilidad de lectura fuera de rango")
@@ -156,6 +251,13 @@ def main():
 
     rnd = random.Random(args.semilla)
     sensor = SensorSimulado(PERFILES[args.perfil], rnd)
+    if args.ws:
+        try:
+            return simular_por_websocket(args, sensor, rnd)
+        except KeyboardInterrupt:
+            print("\nSimulador detenido.")
+            return 0
+    args.intervalo = args.intervalo or 5
     url = f"{args.url.rstrip('/')}/api/dispositivos/{args.codigo}/lecturas"
     print(f"Simulando {args.codigo} (perfil {args.perfil}) -> {url} cada {args.intervalo}s. Ctrl+C para salir.")
 

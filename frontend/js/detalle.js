@@ -2,8 +2,8 @@
 const params = new URLSearchParams(window.location.search);
 const PLANTA_ID = params.get('id');
 
-// Polling periódico (cada 5 segundos) según requerimiento R6 (sin WebSockets)
-const POLLING_INTERVAL_MS = 5000;
+// Se actualiza en vivo por WebSocket (tiempo-real.js); si se cae, vuelve a
+// la consulta periódica de R6 hasta que se recupere.
 
 function hora(fechaIso) {
   return new Date(fechaIso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -95,8 +95,10 @@ if (Sesion.exigir()) {
   document.getElementById('vincular-link').href = `vincular.html?planta_id=${PLANTA_ID}`;
   actualizar().then(seguir => {
     if (!seguir) return;
-    const intervalo = setInterval(async () => {
-      if (!(await actualizar())) clearInterval(intervalo);
-    }, POLLING_INTERVAL_MS);
+    const recargar = TiempoReal.agrupar(actualizar);
+    TiempoReal.escuchar({
+      alAviso: (e) => { if (e.planta_id === Number(PLANTA_ID)) recargar(); },
+      respaldo: actualizar,
+    });
   });
 }

@@ -1,0 +1,5 @@
+nfcpy>=1.0.4        # lector NFC por USB (ACR122U y compatibles)
+ndeflib>=0.3        # arma el registro NDEF con la URL
+requests
+python-dotenv
+pytest

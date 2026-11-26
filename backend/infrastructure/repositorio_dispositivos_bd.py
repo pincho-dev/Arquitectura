@@ -1,4 +1,4 @@
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
 from domain.plantas import CodigoDispositivoEnUso, Dispositivo
@@ -61,6 +61,28 @@ class RepositorioDispositivosBd(RepositorioDispositivos):
         )
         with self.engine.connect() as conexion:
             return [Dispositivo(f.id, f.codigo, f.planta_id, f.ultima_conexion) for f in conexion.execute(consulta)]
+
+    def buscar_por_codigo(self, codigo):
+        consulta = (
+            select(dispositivos.c.id, dispositivos.c.codigo, dispositivos.c.planta_id, dispositivos.c.ultima_conexion)
+            .where(dispositivos.c.codigo == codigo, dispositivos.c.revocado_en.is_(None))
+        )
+        with self.engine.connect() as conexion:
+            f = conexion.execute(consulta).first()
+        return Dispositivo(f.id, f.codigo, f.planta_id, f.ultima_conexion) if f else None
+
+    def descartar_sin_reclamar(self, codigo):
+        # Solo materas de fábrica que nadie reclamó y que nunca reportaron:
+        # el WHERE lo garantiza aunque alguien toque el sticker en ese momento.
+        with self.engine.begin() as conexion:
+            resultado = conexion.execute(
+                delete(dispositivos).where(
+                    dispositivos.c.codigo == codigo,
+                    dispositivos.c.planta_id.is_(None),
+                    dispositivos.c.clave_reclamo_hash.is_not(None),
+                )
+            )
+        return resultado.rowcount == 1
 
     def _insertar(self, codigo, **valores):
         try:

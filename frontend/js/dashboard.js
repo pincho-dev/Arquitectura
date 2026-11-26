@@ -1,5 +1,3 @@
-const POLLING_DASHBOARD_MS = 5000;
-
 function tarjetaPlanta(p) {
   const lectura = p.lectura_actual || {};
   const dispositivo = p.dispositivos[0];
@@ -78,6 +76,10 @@ if (Sesion.exigir()) {
     window.location.href = 'auth.html';
   });
   cargarDashboard();
-  // R6: el dashboard también se actualiza solo (consulta periódica, sin WebSockets).
-  setInterval(cargarDashboard, POLLING_DASHBOARD_MS);
+  // En vivo por WebSocket; si se cae, consulta periódica (R6) hasta que vuelva.
+  const recargar = TiempoReal.agrupar(cargarDashboard);
+  TiempoReal.escuchar({
+    alAviso: (e) => { if (e.tipo === 'lectura' || e.tipo === 'conexion') recargar(); },
+    respaldo: cargarDashboard,
+  });
 }

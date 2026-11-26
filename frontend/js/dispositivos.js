@@ -1,5 +1,4 @@
-// Lista de las ESP del usuario (GET /api/dispositivos). Polling según R6.
-const POLLING_DISPOSITIVOS_MS = 5000;
+// Lista de las ESP del usuario (GET /api/dispositivos), en vivo por WebSocket.
 
 function haceCuanto(fechaIso) {
   if (!fechaIso) return 'Nunca se ha conectado';
@@ -18,7 +17,7 @@ async function cargarDispositivos() {
   try {
     dispositivos = await api('/dispositivos');
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5">No fue posible cargar los dispositivos: ${escaparHtml(err.message)}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6">No fue posible cargar los dispositivos: ${escaparHtml(err.message)}</td></tr>`;
     return;
   }
 
@@ -29,7 +28,7 @@ async function cargarDispositivos() {
     `📡 ${conectados} ${conectados === 1 ? 'conectado' : 'conectados'}`;
 
   if (dispositivos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5">Aún no tienes dispositivos. Acerca tu teléfono al sticker NFC de una matera
+    tbody.innerHTML = `<tr><td colspan="6">Aún no tienes dispositivos. Acerca tu teléfono al sticker NFC de una matera
       o usa <a href="reclamar.html">+ Agregar matera</a>.</td></tr>`;
     return;
   }
@@ -41,11 +40,45 @@ async function cargarDispositivos() {
       <td><a href="detalle.html?id=${d.planta.id}">${escaparHtml(d.planta.nombre)}</a></td>
       <td>${ICONO_ESPECIE[d.planta.especie] || '🌿'} ${escaparHtml(d.planta.especie)}</td>
       <td>${haceCuanto(d.ultima_conexion)}</td>
+      <td class="acciones">
+        <button type="button" data-orden="parpadear" data-codigo="${escaparHtml(d.codigo)}" ${d.conectado ? '' : 'disabled'}
+          title="El LED de la matera parpadea para encontrarla">💡 Parpadear</button>
+        <button type="button" data-orden="reportar" data-codigo="${escaparHtml(d.codigo)}" ${d.conectado ? '' : 'disabled'}
+          title="La matera manda una lectura ya mismo">📤 Leer ahora</button>
+      </td>
     </tr>
   `).join('');
 }
 
+// Órdenes en vivo: viajan al ESP32 por su WebSocket (POST /api/dispositivos/<codigo>/ordenes).
+document.getElementById('dispositivos-body').addEventListener('click', async (e) => {
+  const boton = e.target.closest('button[data-orden]');
+  if (!boton) return;
+  const texto = boton.textContent;
+  boton.disabled = true;
+  try {
+    await api(`/dispositivos/${encodeURIComponent(boton.dataset.codigo)}/ordenes`,
+      { metodo: 'POST', cuerpo: { orden: boton.dataset.orden } });
+    boton.textContent = 'Enviada…';
+  } catch (err) {
+    boton.textContent = err.codigo === 'DISPOSITIVO_DESCONECTADO' ? 'Desconectada' : 'Error';
+    boton.title = err.message;
+  }
+  setTimeout(() => { boton.textContent = texto; boton.disabled = false; }, 2500);
+});
+
 if (Sesion.exigir()) {
   cargarDispositivos();
-  setInterval(cargarDispositivos, POLLING_DISPOSITIVOS_MS);
+  const recargar = TiempoReal.agrupar(cargarDispositivos);
+  TiempoReal.escuchar({
+    alAviso: (e) => {
+      if (e.tipo === 'orden_ok') {
+        const boton = document.querySelector(`button[data-codigo="${CSS.escape(e.codigo)}"]:disabled`);
+        if (boton) boton.textContent = '✓ Cumplida';
+        return;
+      }
+      if (e.tipo === 'conexion' || e.tipo === 'lectura') recargar();
+    },
+    respaldo: cargarDispositivos,
+  });
 }

@@ -106,6 +106,17 @@ class RepositorioDispositivos(ABC):
         """Devuelve False si otro usuario la reclamó primero."""
         pass
 
+    @abstractmethod
+    def buscar_por_codigo(self, codigo):
+        """Devuelve el Dispositivo no revocado con ese código, o None."""
+        pass
+
+    @abstractmethod
+    def descartar_sin_reclamar(self, codigo):
+        """Borra una matera de fábrica que nadie reclamó (ej. falló la grabación
+        del sticker). Devuelve False si no existe o ya tiene dueño."""
+        pass
+
 class GeneradorTokensDispositivo(ABC):
     @abstractmethod
     def generar(self):
@@ -113,4 +124,27 @@ class GeneradorTokensDispositivo(ABC):
 
     @abstractmethod
     def generar_clave_reclamo(self):
+        pass
+
+
+class NotificadorUsuarios(ABC):
+    """Avisos en vivo para un usuario (todas sus pestañas abiertas). El dominio
+    no sabe que se entregan por WebSocket."""
+    @abstractmethod
+    def notificar(self, usuario_id, evento):
+        pass
+
+
+class CanalDispositivos(ABC):
+    """Materas conectadas en este momento por un canal permanente (WebSocket)."""
+    @abstractmethod
+    def presencia(self, codigo):
+        """Devuelve (en_linea, desconectada_en): si la matera tiene el canal
+        abierto ahora y, si no, cuándo lo cerró por última vez (None si nunca
+        se conectó por este canal desde que arrancó el servidor)."""
+        pass
+
+    @abstractmethod
+    def enviar_orden(self, codigo, orden):
+        """Devuelve el id de la orden. Lanza DispositivoDesconectado."""
         pass

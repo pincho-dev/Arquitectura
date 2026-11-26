@@ -7,6 +7,7 @@ from domain.plantas import (
     AccesoDenegado, ClaveDeReclamoInvalida, CodigoDispositivoEnUso, DatosDePlantaInvalidos,
     InvitadoNoRegistrado, MateraYaReclamada, PlantaNoEncontrada,
 )
+from domain.ordenes import DispositivoDesconectado, OrdenInvalida
 from domain.puertos import EspecieNoEncontrada
 from presentation.http import ErrorDeEntrada, ahora_utc, error_json, leer_medicion, leer_objeto, leer_texto
 
@@ -20,7 +21,8 @@ TEXTO_ESTADO = {
 
 
 def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_lectura,
-                      vincular_dispositivo, reclamar_matera, compartir_planta, requiere_usuario):
+                      vincular_dispositivo, reclamar_matera, compartir_planta, requiere_usuario,
+                      canal_dispositivos=None):
     api = Blueprint("plantas", __name__, url_prefix="/api/plantas")
 
     @api.errorhandler(ErrorDeEntrada)
@@ -67,7 +69,7 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     @requiere_usuario
     def listar():
         ahora = ahora_utc()
-        return jsonify([_resumen_json(r, ahora) for r in listar_plantas.ejecutar(g.usuario_id)])
+        return jsonify([_resumen_json(r, ahora, canal_dispositivos) for r in listar_plantas.ejecutar(g.usuario_id)])
 
     @api.route("", methods=["POST"])
     @requiere_usuario
@@ -92,7 +94,7 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     @requiere_usuario
     def estado(planta_id):
         resumen = consultar_estado.ejecutar(g.usuario_id, planta_id)
-        cuerpo = _resumen_json(resumen, ahora_utc())
+        cuerpo = _resumen_json(resumen, ahora_utc(), canal_dispositivos)
         cuerpo["parametros"] = _parametros_json(resumen.diagnostico)
         cuerpo["historial"] = [_lectura_json(l) for l in resumen.historial]
         return jsonify(cuerpo)
@@ -127,35 +129,73 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     return api
 
 
-def crear_api_mis_dispositivos(listar_plantas, requiere_usuario):
+def crear_api_mis_dispositivos(listar_plantas, requiere_usuario, enviar_orden=None, canal_dispositivos=None):
     """GET /api/dispositivos: todas las materas del usuario (las suyas y las
     de plantas compartidas con él). Reutiliza ListarPlantas: es solo otra
-    vista de los mismos datos, no un caso de uso nuevo."""
+    vista de los mismos datos, no un caso de uso nuevo.
+
+    POST /api/dispositivos/<codigo>/ordenes: el dueño le manda una orden a la
+    matera, que le llega al instante por su WebSocket."""
     api = Blueprint("mis_dispositivos", __name__, url_prefix="/api/dispositivos")
+
+    @api.errorhandler(ErrorDeEntrada)
+    def _entrada_invalida(e):
+        return error_json("PARAMETRO_INVALIDO", str(e), 400, campo=e.campo)
+
+    @api.errorhandler(OrdenInvalida)
+    def _orden_invalida(e):
+        return error_json("ORDEN_INVALIDA", str(e), 400, campo="orden")
+
+    @api.errorhandler(DispositivoDesconectado)
+    def _desconectado(e):
+        return error_json("DISPOSITIVO_DESCONECTADO", str(e), 409)
+
+    @api.errorhandler(PlantaNoEncontrada)
+    def _no_encontrada(e):
+        return error_json("DISPOSITIVO_NO_ENCONTRADO", str(e), 404)
+
+    @api.errorhandler(AccesoDenegado)
+    def _acceso_denegado(e):
+        return error_json("ACCESO_DENEGADO", str(e), 403)
 
     @api.route("", methods=["GET"])
     @requiere_usuario
     def listar():
         ahora = ahora_utc()
         return jsonify([
-            {
-                "codigo": d.codigo,
-                "conectado": d.esta_conectado(ahora),
-                "ultima_conexion": d.ultima_conexion.isoformat() if d.ultima_conexion else None,
-                "planta": _planta_json(resumen.planta),
-            }
+            {**_dispositivo_json(d, ahora, canal_dispositivos), "planta": _planta_json(resumen.planta)}
             for resumen in listar_plantas.ejecutar(g.usuario_id)
             for d in resumen.dispositivos
         ])
 
+    @api.route("/<codigo>/ordenes", methods=["POST"])
+    @requiere_usuario
+    def ordenar(codigo):
+        if enviar_orden is None:
+            return error_json("NO_DISPONIBLE", "Las órdenes en vivo no están habilitadas.", 503)
+        datos = leer_objeto(request.get_json(silent=True))
+        id_orden = enviar_orden.ejecutar(g.usuario_id, codigo, leer_texto(datos, "orden"), datos.get("parametros"))
+        return jsonify({"id": id_orden, "codigo": codigo.strip().upper()}), 202
+
     return api
+
+
+def _dispositivo_json(dispositivo, ahora, canal_dispositivos):
+    # Con WebSocket se sabe al instante si la matera está conectada; sin él,
+    # solo por la ventana de VENTANA_CONEXION desde su último reporte HTTP.
+    presencia = canal_dispositivos.presencia(dispositivo.codigo) if canal_dispositivos else None
+    return {
+        "codigo": dispositivo.codigo,
+        "conectado": dispositivo.esta_conectado(ahora, presencia),
+        "ultima_conexion": dispositivo.ultima_conexion.isoformat() if dispositivo.ultima_conexion else None,
+    }
 
 
 def _planta_json(planta):
     return {"id": planta.id, "nombre": planta.nombre, "especie": planta.especie}
 
 
-def _resumen_json(resumen, ahora):
+def _resumen_json(resumen, ahora, canal_dispositivos=None):
     estado = resumen.diagnostico.estado if resumen.diagnostico else ESTADO_SIN_DATOS
     ultima = resumen.ultima_lectura
     return {
@@ -165,14 +205,7 @@ def _resumen_json(resumen, ahora):
         "estado_texto": TEXTO_ESTADO[estado],
         "recomendaciones": resumen.diagnostico.recomendaciones if resumen.diagnostico else None,
         "lectura_actual": _lectura_json(ultima) if ultima else None,
-        "dispositivos": [
-            {
-                "codigo": d.codigo,
-                "conectado": d.esta_conectado(ahora),
-                "ultima_conexion": d.ultima_conexion.isoformat() if d.ultima_conexion else None,
-            }
-            for d in resumen.dispositivos
-        ],
+        "dispositivos": [_dispositivo_json(d, ahora, canal_dispositivos) for d in resumen.dispositivos],
     }
 
 

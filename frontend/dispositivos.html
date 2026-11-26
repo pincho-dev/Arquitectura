@@ -30,15 +30,16 @@
     <div class="tabla-contenedor">
       <table class="tabla-dispositivos">
         <thead>
-          <tr><th>Estado</th><th>Código</th><th>Planta</th><th>Especie</th><th>Última conexión</th></tr>
+          <tr><th>Estado</th><th>Código</th><th>Planta</th><th>Especie</th><th>Última conexión</th><th>Acciones</th></tr>
         </thead>
         <tbody id="dispositivos-body"></tbody>
       </table>
     </div>
-    <p class="nota-conexion">Un dispositivo aparece conectado si envió una lectura en los últimos 2 minutos. La lista se actualiza sola cada 5 segundos.</p>
+    <p class="nota-conexion">Las materas conectadas por WebSocket aparecen en vivo y desconectadas al instante. Las que reportan por HTTP cuentan como conectadas si enviaron una lectura en los últimos 2 minutos.</p>
   </main>
 
   <script src="js/api.js"></script>
+  <script src="js/tiempo-real.js"></script>
   <script src="js/dispositivos.js"></script>
 </body>
 </html>

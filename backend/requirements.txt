@@ -11,3 +11,8 @@ psycopg[binary]
 # Autenticación
 pyjwt
 bcrypt
+
+# Tiempo real: WebSocket de los ESP32 (/ws/dispositivos) y del front (/ws/app)
+flask-sock
+# Cliente WebSocket para los tests y para simulador_esp32.py --ws
+websocket-client

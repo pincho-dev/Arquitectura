@@ -174,6 +174,35 @@
 
 ---
 
+## Sesión 2026-11-25 — Parte final: gamificación y WebSockets
+
+> Esta parte **no tiene enunciado escrito**: el profesor pidió verbalmente gamificación y **WebSockets obligatorios**.
+
+### 1. Diseño de la gamificación (idea de Julián) — solo conversación, sin código
+- **Se pidió:** gamificar el producto con un ranking y divisiones (bronce, plata, oro…) según qué tan bien cuida cada usuario sus plantas en el mes (alertas de cuidado), cuántas plantas tiene, y una galería para subir fotos y presumirlas.
+- **Propuso la IA:** no contar lecturas en alerta (el firmware manda una cada 10 s, unas 259.000 al mes, y desconectar la ESP daría cero alertas), sino **% del tiempo saludable**, **episodios** (cambios a riesgo o crítico) y **tiempo de reacción** hasta volver a saludable, con un mínimo de horas conectadas para clasificar. En vez de Elo (que está hecho para enfrentamientos 1 contra 1), **puntos de liga** diarios con divisiones por umbral y reinicio parcial mensual. Galería con la foto ligada a la planta mostrando sus datos reales, **quitando el EXIF (GPS de la casa)** y validando el tipo de imagen por su contenido. Cálculo del puntaje en el dominio puro y un puerto `AlmacenFotos`.
+- **Se aceptó / cambió:** contar las **ESP activas por cuenta** (con un mínimo de tiempo conectada en el mes); que los usuarios le pongan **nombre a su planta** (falta `PATCH /api/plantas/{id}`). Julián hará **el front de la gamificación él mismo**. Pendiente decidir: pesos del puntaje, ranking global o entre amigos, y si cuentan las plantas sin matera.
+
+### 2. WebSockets: aclaración de lo que había hecho
+- **Se pidió:** que la detección de desconexión de la ESP y los cambios en el front funcionen por WebSocket. Julián recordaba que ya estaba hecho.
+- **Propuso la IA:** revisó el repo, las ramas, el stash y las conversaciones guardadas: en `back_Julian` **no había WebSocket** (todo era HTTP + consulta periódica por R6); la fábrica, el NFC y el firmware HTTP sí estaban (`92f8543`, `6c620a0`). Explicó que una ESP desconectada no avisa nada, que con una conexión permanente sí se sabe al instante, y que para un apagón brusco hace falta un heartbeat (ping/pong).
+- **Se aceptó / cambió:** Julián encontró el trabajo de WebSocket en una sesión de claude.ai del **2026-11-09** que nunca se subió: lo descargó como `git bundle` (commit `fb61bc0`, rama `nfc-websocket`). Ese commit partía del `main` viejo y **no incluía nada de `back_Julian`** (ni Postgres, ni login real, ni plantas, ni reclamo NFC), así que no se podía fusionar tal cual.
+
+### 3. Integración del WebSocket, la estación NFC y el firmware sobre `back_Julian` — escrito directamente por la IA
+- **Se pidió:** **explícitamente que la IA lo implementara**, porque no se había hecho push de ese trabajo.
+- **Propuso la IA:** portar las piezas del bundle al modelo que ya existe (código + clave de reclamo + token opaco), en vez de traer su segundo modelo de "matera":
+  - **Dominio:** puertos `NotificadorUsuarios` y `CanalDispositivos`; `domain/ordenes.py` (`parpadear`, `reportar`, `regar` con parámetros validados); `Dispositivo.esta_conectado()` ahora usa la presencia del WebSocket si se conoce (desconectada al instante al cerrar el socket) y si no la ventana de 2 min del HTTP.
+  - **Aplicación:** `AvisarDuenos` (busca los dueños en cada aviso, así funcionan las plantas compartidas y las materas reclamadas con el ESP ya conectado); `RegistrarLectura` avisa cada lectura **sin importar el adaptador** (formulario, HTTP o WebSocket); `EnviarOrden` (misma regla de propiedad); `DescartarMatera`.
+  - **Adaptadores:** `/ws/dispositivos` (el token se verifica de nuevo en cada lectura: corta al instante una matera revocada y deja reportar a una reclamada sin reconectarse); `/ws/app` (JWT en el primer mensaje, no en la URL); canales en memoria; ping del servidor cada `WS_PING_S`; `POST /api/dispositivos/{codigo}/ordenes`; API de fábrica `/api/fabrica/materas` con `X-Fabrica-Clave` (mismo caso de uso `FabricarMatera` que el comando de consola).
+  - **`fabrica/`:** estación con lector NFC USB (nfcpy): registra la matera, graba y verifica la URL del sticker, descarta si falla y genera el `config.h` del firmware.
+  - **Firmware:** `matera_esp32.ino` por WebSocket con heartbeat, reconexión y órdenes; **sin `delay()` en el `loop()`** (si no, no responde los ping y el servidor la da por muerta).
+  - **Simulador:** modo `--ws`; `kill -STOP` / `kill -CONT` simula un apagón y el regreso.
+  - **Front:** `js/tiempo-real.js` en el dashboard, el detalle y la página de dispositivos (botones Parpadear y Leer ahora). Si el WebSocket se cae, vuelve a la consulta periódica de R6.
+  - **Tests:** 31 nuevos en el backend (135 en total), incluido el WebSocket contra un servidor real y el heartbeat, y 3 de la estación. Probado de punta a punta con PostgreSQL: estación simulada → simulador `--ws` sin dueño → reclamo → lecturas en vivo → orden y su confirmación → `kill -STOP` detectado a los 5,5 s → reconexión; y en Chromium headless, las páginas en vivo y el paso a "Desconectado" sin recargar.
+- **Se aceptó / cambió:** — (pendiente de revisión del equipo). **Nota de honestidad:** este código no lo escribió el equipo; para la sustentación hay que poder explicar los dos WebSockets, el heartbeat y por qué el dominio no sabe que existen. **El `.ino` no se pudo compilar en el PC** (no hay toolchain de Arduino).
+
+---
+
 ## Pendientes abiertos (para no perderlos)
 - [x] ~~Decidir si se reutiliza `arquitectura_de_software/` o se abre una carpeta/repo nuevo~~ → resuelto: repo nuevo en `diagnostico-plantas/`.
 - [x] ~~Definir y justificar la regla de agregación de RF3 (qué combinación de BAJO/ALTO da CRITICO vs EN_RIESGO)~~ → resuelto en sesión 2026-09-16: desviación % relativa al límite, umbral leve 10%, umbral severo 50%.
@@ -191,3 +220,7 @@
 - [ ] Escribir el documento de arquitectura de la Fase 2 (lo escribe el equipo): diagrama hexagonal con nombres reales, tabla de puertos/adaptadores, dónde se emite y se verifica el JWT, 3 principios SOLID, enlace al commit `a91628b` y análisis MQTT.
 - [ ] Probar el flujo NFC desde un teléfono real en la red local (`--host 0.0.0.0`, `FRONT_URL` y `CORS_ORIGIN` con la IP del PC) y grabar la URL en un sticker real.
 - [ ] Conectar el ESP32 físico del equipo (falta saber qué sensores tiene para escribir el firmware).
+- [ ] Compilar y subir el nuevo `firmware/matera_esp32/matera_esp32.ino` (WebSocket) a la ESP32 real; instalar las bibliotecas WebSockets y ArduinoJson.
+- [ ] Probar la estación de fábrica con el lector NFC USB real y stickers NTAG.
+- [ ] Justificar en el documento por qué el front usa WebSocket si R6 pedía consulta periódica (directriz verbal del profesor; la consulta periódica quedó como respaldo).
+- [ ] Gamificación: cerrar pesos del puntaje, ranking global o entre amigos, temporadas; tabla de sesiones de conexión para medir el tiempo conectado; `PATCH /api/plantas/{id}` para el nombre; galería de fotos (puerto `AlmacenFotos`, quitar EXIF).

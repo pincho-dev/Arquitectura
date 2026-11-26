@@ -63,7 +63,18 @@ class Dispositivo:
         # Una matera sin planta todavía no pertenece a ningún usuario.
         return self.planta_id is not None
 
-    def esta_conectado(self, ahora):
+    def esta_conectado(self, ahora, presencia=None):
+        """presencia = (en_linea, desconectada_en) del canal WebSocket, si se
+        conoce. Con WebSocket se sabe al instante; por HTTP solo se puede
+        suponer que sigue conectado si reportó dentro de VENTANA_CONEXION."""
+        if presencia is not None:
+            en_linea, desconectada_en = presencia
+            if en_linea:
+                return True
+            if desconectada_en is not None and (
+                    self.ultima_conexion is None or self.ultima_conexion <= desconectada_en):
+                # Cerró el WebSocket y no ha vuelto a reportar por ningún lado.
+                return False
         return self.ultima_conexion is not None and ahora - self.ultima_conexion <= VENTANA_CONEXION
 
 
