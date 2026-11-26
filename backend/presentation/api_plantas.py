@@ -22,7 +22,7 @@ TEXTO_ESTADO = {
 
 def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_lectura,
                       vincular_dispositivo, reclamar_matera, compartir_planta, requiere_usuario,
-                      canal_dispositivos=None):
+                      canal_dispositivos=None, renombrar_planta=None):
     api = Blueprint("plantas", __name__, url_prefix="/api/plantas")
 
     @api.errorhandler(ErrorDeEntrada)
@@ -77,6 +77,13 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
         datos = leer_objeto(request.get_json(silent=True))
         planta = crear_planta.ejecutar(g.usuario_id, leer_texto(datos, "nombre"), leer_texto(datos, "especie"))
         return jsonify(_planta_json(planta)), 201
+
+    @api.route("/<int:planta_id>", methods=["PATCH"])
+    @requiere_usuario
+    def renombrar(planta_id):
+        datos = leer_objeto(request.get_json(silent=True))
+        planta = renombrar_planta.ejecutar(g.usuario_id, planta_id, leer_texto(datos, "nombre"))
+        return jsonify(_planta_json(planta))
 
     @api.route("/reclamar", methods=["POST"])
     @requiere_usuario

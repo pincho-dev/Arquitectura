@@ -13,6 +13,7 @@ from application.compartir_planta import CompartirPlanta
 from application.enviar_orden import EnviarOrden
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
 from application.crear_planta import CrearPlanta
+from application.renombrar_planta import RenombrarPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
 from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
@@ -106,6 +107,7 @@ app.register_blueprint(crear_api_plantas(
     CompartirPlanta(repositorio_plantas, repositorio_usuarios),
     requiere_usuario,
     canal_dispositivos,
+    renombrar_planta=RenombrarPlanta(repositorio_plantas),
 ))
 app.register_blueprint(crear_api_mis_dispositivos(
     listar_plantas, requiere_usuario,

@@ -35,7 +35,12 @@ class CrearPlantaPort(ABC):
     @abstractmethod
     def ejecutar(self, usuario_id, nombre, especie):
         pass
-
+    
+class RenombrarPlantaPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, planta_id, nombre):
+        pass
+    
 class VincularDispositivoPort(ABC):
     @abstractmethod
     def ejecutar(self, usuario_id, planta_id, codigo):

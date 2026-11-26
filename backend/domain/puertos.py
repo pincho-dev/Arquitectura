@@ -22,7 +22,6 @@ class RepositorioUsuarios(ABC):
     def crear(self, nombre, email, password_hash):
         """Devuelve el Usuario creado. Lanza EmailYaRegistrado si el email ya existe."""
         pass
-
 class HasherContrasenas(ABC):
     @abstractmethod
     def hashear(self, password):
@@ -62,6 +61,9 @@ class RepositorioPlantas(ABC):
     @abstractmethod
     def agregar_dueno(self, planta_id, usuario_id):
         """No hace nada si el usuario ya es dueño."""
+        pass
+    @abstractmethod
+    def renombrar(self, planta_id, nombre):
         pass
 
 class HistorialLecturas(ABC):

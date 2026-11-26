@@ -1,4 +1,4 @@
-from sqlalchemy import delete, func, insert, select
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as insert_pg
 
 from domain.plantas import Planta
@@ -44,7 +44,10 @@ class RepositorioPlantasBd(RepositorioPlantas):
                 .values(usuario_id=usuario_id, planta_id=planta_id)
                 .on_conflict_do_nothing()
             )
-
+    def renombrar(self, planta_id, nombre):
+        with self.engine.begin() as conexion:
+            conexion.execute(update(plantas).where(plantas.c.id == planta_id). values(nombre=nombre))
+            
     def _consultar(self, filtro):
         consulta = (
             select(plantas.c.id, plantas.c.nombre, especies.c.nombre.label("especie"),

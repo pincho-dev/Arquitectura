@@ -6,6 +6,7 @@ import pytest
 
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
 from application.crear_planta import CrearPlanta
+from application.renombrar_planta import RenombrarPlanta
 from application.diagnosticar_planta import DiagnosticarPlanta
 from application.compartir_planta import CompartirPlanta
 from application.materas import FabricarMatera, ReclamarMatera
@@ -56,6 +57,9 @@ class _RepositorioPlantasFalso(RepositorioPlantas):
     def agregar_dueno(self, planta_id, usuario_id):
         planta = self.plantas[planta_id]
         self.plantas[planta_id] = Planta(planta.id, planta.nombre, planta.especie, planta.duenos | {usuario_id})
+
+    def renombrar(self, planta_id, nombre):
+        self.plantas[planta_id].nombre = nombre
 
 
 class _HistorialFalso(HistorialLecturas):
@@ -142,6 +146,7 @@ def entorno():
         "consultar": ConsultarEstadoPlanta(plantas, historial, dispositivos, diagnosticar),
         "listar": ListarPlantas(plantas, historial, dispositivos, diagnosticar),
         "crear": CrearPlanta(plantas),
+        "renombrar": RenombrarPlanta(plantas),
         "vincular": VincularDispositivo(plantas, dispositivos, _GeneradorFalso()),
     }
 
@@ -252,6 +257,30 @@ def test_listar_devuelve_solo_las_plantas_del_usuario(entorno):
 def test_crear_planta_sin_nombre_falla(entorno):
     with pytest.raises(DatosDePlantaInvalidos):
         entorno["crear"].ejecutar(DUENA, "   ", "potos")
+
+
+def test_renombrar_planta_cambia_el_nombre_sin_espacios(entorno):
+    planta = entorno["renombrar"].ejecutar(DUENA, entorno["planta"].id, "  Potos del balcón ")
+
+    assert planta.nombre == "Potos del balcón"
+    assert [p.planta.nombre for p in entorno["listar"].ejecutar(DUENA)] == ["Potos del balcón"]
+
+
+def test_usuario_ajeno_no_puede_renombrar_la_planta(entorno):
+    with pytest.raises(AccesoDenegado):
+        entorno["renombrar"].ejecutar(AJENO, entorno["planta"].id, "Mía")
+    assert entorno["planta"].nombre == "Potos sala"
+
+
+@pytest.mark.parametrize("nombre", ["   ", "x" * 101])
+def test_renombrar_con_nombre_vacio_o_muy_largo_falla(entorno, nombre):
+    with pytest.raises(DatosDePlantaInvalidos):
+        entorno["renombrar"].ejecutar(DUENA, entorno["planta"].id, nombre)
+
+
+def test_renombrar_planta_inexistente_falla(entorno):
+    with pytest.raises(PlantaNoEncontrada):
+        entorno["renombrar"].ejecutar(DUENA, 999, "Fantasma")
 
 
 def test_crear_planta_de_especie_desconocida_falla(entorno):
