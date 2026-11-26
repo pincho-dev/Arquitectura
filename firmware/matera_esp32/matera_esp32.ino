@@ -129,7 +129,7 @@ void alRecibirMensaje(uint8_t* datos, size_t largo) {
     intervaloMs = (mensaje["intervalo_s"] | 10) * 1000UL;
     Serial.printf("[ws] conectada como %s (%s), lectura cada %lus\n",
                   (const char*)(mensaje["codigo"] | "?"),
-                  (mensaje["reclamada"] | false) ? "reclamada" : "sin dueño: falta tocar el sticker",
+                  (mensaje["reclamada"] | false) ? "reclamada" : "sin dueño: falta escanear el QR",
                   intervaloMs / 1000);
     enviarLectura();                         // primera lectura de inmediato
   } else if (strcmp(tipo, "lectura_ok") == 0) {

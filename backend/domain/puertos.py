@@ -93,8 +93,14 @@ class RepositorioDispositivos(ABC):
         pass
 
     @abstractmethod
-    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo):
-        """Matera sin dueño todavía. Lanza CodigoDispositivoEnUso o EspecieNoEncontrada."""
+    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo, rfid_uid=None):
+        """Matera sin dueño todavía, identificada por la tarjeta RFID rfid_uid.
+        Lanza CodigoDispositivoEnUso, TarjetaRfidEnUso o EspecieNoEncontrada."""
+        pass
+
+    @abstractmethod
+    def buscar_por_rfid(self, rfid_uid):
+        """Devuelve el Dispositivo no revocado con esa tarjeta RFID, o None."""
         pass
 
     @abstractmethod
@@ -115,8 +121,8 @@ class RepositorioDispositivos(ABC):
 
     @abstractmethod
     def descartar_sin_reclamar(self, codigo):
-        """Borra una matera de fábrica que nadie reclamó (ej. falló la grabación
-        del sticker). Devuelve False si no existe o ya tiene dueño."""
+        """Borra una matera de fábrica que nadie reclamó (ej. la estación no pudo
+        generar su QR). Devuelve False si no existe o ya tiene dueño."""
         pass
 
 class GeneradorTokensDispositivo(ABC):

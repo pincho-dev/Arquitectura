@@ -72,9 +72,15 @@ class IniciarSesionPort(ABC):
 
 class FabricarMateraPort(ABC):
     @abstractmethod
-    def ejecutar(self, codigo, especie):
+    def ejecutar(self, codigo, especie, rfid_uid=None):
         """Devuelve (Dispositivo, token, clave_reclamo): el token va al firmware
-        y la clave al sticker NFC. Ninguno se puede volver a consultar."""
+        y la clave al QR de la etiqueta. Ninguno se puede volver a consultar."""
+        pass
+
+class IdentificarMateraPort(ABC):
+    @abstractmethod
+    def ejecutar(self, rfid_uid):
+        """Qué matera tiene pegada esta tarjeta RFID. Lanza TarjetaRfidDesconocida."""
         pass
 
 class ReclamarMateraPort(ABC):

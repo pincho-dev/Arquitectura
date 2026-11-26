@@ -116,8 +116,8 @@ usuario_planta = Table(
 
 # Cada dispositivo (matera) reporta lecturas de UNA planta; su token solo sirve
 # para eso. Una matera recién fabricada no tiene planta (planta_id NULL) hasta
-# que un usuario la reclama con la clave de su sticker NFC; mientras tanto sus
-# lecturas se rechazan.
+# que un usuario la reclama con la clave del QR de su etiqueta; mientras tanto
+# sus lecturas se rechazan. rfid_uid es la tarjeta RFID que la fábrica le pegó.
 dispositivos = Table(
     "dispositivos", metadata,
     Column("id", BigInteger, Identity(), primary_key=True),
@@ -128,6 +128,7 @@ dispositivos = Table(
     Column("especie_id", Integer, ForeignKey("especies.id")),
     Column("clave_reclamo_hash", String(64)),
     Column("reclamado_en", DateTime(timezone=True)),
+    Column("rfid_uid", String(20), unique=True),
     Column("revocado_en", DateTime(timezone=True)),
     Column("ultima_conexion", DateTime(timezone=True)),
     _creado_en(),

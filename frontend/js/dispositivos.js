@@ -28,7 +28,7 @@ async function cargarDispositivos() {
     `📡 ${conectados} ${conectados === 1 ? 'conectado' : 'conectados'}`;
 
   if (dispositivos.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6">Aún no tienes dispositivos. Acerca tu teléfono al sticker NFC de una matera
+    tbody.innerHTML = `<tr><td colspan="6">Aún no tienes dispositivos. Escanea el QR de la etiqueta de una matera
       o usa <a href="reclamar.html">+ Agregar matera</a>.</td></tr>`;
     return;
   }

@@ -37,7 +37,7 @@ authForm.addEventListener('submit', async (e) => {
   try {
     const data = await api(currentMode === 'login' ? '/auth/login' : '/auth/registro', { metodo: 'POST', cuerpo });
     Sesion.guardar(data);
-    // Si se llegó aquí desde un sticker NFC, se vuelve a reclamar la matera.
+    // Si se llegó aquí desde el QR de una matera, se vuelve a reclamar la matera.
     const volverA = sessionStorage.getItem('volver_a');
     sessionStorage.removeItem('volver_a');
     window.location.href = volverA || 'dashboard.html';

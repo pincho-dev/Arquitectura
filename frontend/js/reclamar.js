@@ -1,8 +1,8 @@
 /*
- * Reclamo de una matera con su sticker NFC.
+ * Reclamo de una matera con el QR de su etiqueta.
  *
- * El sticker guarda una URL: reclamar.html?codigo=MAT-1A2B&clave=xxxx
- * Al acercar el teléfono, el sistema operativo abre esa URL en el navegador
+ * El QR guarda una URL: reclamar.html?codigo=MAT-1A2B&clave=xxxx
+ * Al escanearlo con la cámara, el teléfono abre esa URL en el navegador
  * (no hace falta app). Esta página toma código y clave, y si hay sesión
  * reclama la matera de inmediato; si no, pasa por el login y vuelve aquí.
  */
@@ -33,29 +33,12 @@ async function reclamar(codigo, clave) {
     vistaReclamo.hidden = true;
     if (err.codigo === 'MATERA_YA_RECLAMADA') {
       mostrarError('Esta matera ya pertenece a una cuenta. Si es tuya, la encuentras en "Mis plantas".');
-    } else if (err.codigo === 'STICKER_INVALIDO') {
-      mostrarError('El sticker no corresponde a ninguna matera. Revisa el código y la clave.');
+    } else if (err.codigo === 'CLAVE_RECLAMO_INVALIDA') {
+      mostrarError('El código y la clave no corresponden a ninguna matera. Revísalos en la etiqueta.');
     } else {
       mostrarError(err.message || 'No fue posible agregar la matera.');
     }
     vistaInstrucciones.hidden = false;
-  }
-}
-
-// Web NFC: solo Chrome en Android. Lee la URL del sticker sin salir de la app.
-async function escanearSticker() {
-  try {
-    const lector = new NDEFReader();
-    await lector.scan();
-    mensaje.textContent = 'Acerca el teléfono al sticker…';
-    lector.addEventListener('reading', ({ message }) => {
-      const registro = message.records.find(r => r.recordType === 'url');
-      if (!registro) return mostrarError('El sticker no tiene una URL de matera.');
-      const url = new URL(new TextDecoder().decode(registro.data));
-      reclamar(url.searchParams.get('codigo'), url.searchParams.get('clave'));
-    }, { once: true });
-  } catch (err) {
-    mostrarError(`No se pudo usar el NFC: ${err.message}`);
   }
 }
 
@@ -70,12 +53,6 @@ if (Sesion.exigir()) {
     reclamar(codigo, clave);
   } else {
     vistaInstrucciones.hidden = false;
-  }
-
-  if ('NDEFReader' in window) {
-    const boton = document.getElementById('escanear-btn');
-    boton.hidden = false;
-    boton.addEventListener('click', escanearSticker);
   }
 
   document.getElementById('manual-form').addEventListener('submit', (e) => {

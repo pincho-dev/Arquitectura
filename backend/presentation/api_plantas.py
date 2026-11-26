@@ -54,8 +54,8 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
         return error_json("DISPOSITIVO_YA_EXISTE", str(e), 409, campo="codigo")
 
     @api.errorhandler(ClaveDeReclamoInvalida)
-    def _sticker_invalido(e):
-        return error_json("STICKER_INVALIDO", str(e), 404, campo="clave")
+    def _clave_invalida(e):
+        return error_json("CLAVE_RECLAMO_INVALIDA", str(e), 404, campo="clave")
 
     @api.errorhandler(MateraYaReclamada)
     def _ya_reclamada(e):
@@ -88,7 +88,7 @@ def crear_api_plantas(listar_plantas, consultar_estado, crear_planta, registrar_
     @api.route("/reclamar", methods=["POST"])
     @requiere_usuario
     def reclamar():
-        # Lo que hace el front cuando el teléfono lee el sticker NFC de la matera.
+        # Lo que hace el front cuando el teléfono escanea el QR de la etiqueta de la matera.
         datos = leer_objeto(request.get_json(silent=True))
         planta, dispositivo = reclamar_matera.ejecutar(
             g.usuario_id, leer_texto(datos, "codigo"), leer_texto(datos, "clave"),

@@ -15,7 +15,7 @@ class GeneradorTokensDispositivoAleatorio(GeneradorTokensDispositivo):
         return PREFIJO + secrets.token_urlsafe(24)
 
     def generar_clave_reclamo(self):
-        # Va impresa en el sticker NFC: más corta que el token, pero con 72
+        # Va en el QR de la etiqueta: más corta que el token, pero con 72
         # bits de azar sigue siendo imposible de adivinar.
         return secrets.token_urlsafe(9)
 

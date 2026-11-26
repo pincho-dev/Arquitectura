@@ -1,5 +1,5 @@
-nfcpy>=1.0.4        # lector NFC por USB (ACR122U y compatibles)
-ndeflib>=0.3        # arma el registro NDEF con la URL
+pyserial>=3.5       # habla con el ESP32/Arduino que tiene el RC522
+qrcode[pil]>=7.4    # QR de reclamo de la etiqueta (PNG y en la terminal)
 requests
 python-dotenv
 pytest

@@ -6,11 +6,11 @@ Envía lecturas periódicas a POST /api/dispositivos/<codigo>/lecturas con el
 token del dispositivo. Además de lecturas realistas, mete a propósito valores
 fuera de rango y datos inválidos para probar la robustez de la API.
 
-Uso con una matera de la fábrica simulada (flujo NFC):
-    python simulador_esp32.py --matera materas_fabricadas/MAT-1A2B.json --tocar-nfc
+Uso con una matera de la fábrica simulada (flujo QR):
+    python simulador_esp32.py --matera materas_fabricadas/MAT-1A2B.json --escanear-qr
 
     --matera carga el código, el token y la especie que "trae de fábrica".
-    --tocar-nfc abre en el navegador la URL del sticker, como si el teléfono
+    --escanear-qr abre en el navegador la URL del QR, como si el teléfono
     lo hubiera leído. Hasta que alguien reclame la matera, el backend
     rechaza sus lecturas (409 MATERA_SIN_DUENO) y el simulador sigue
     intentando: así se ve que cada matera necesita un dueño.
@@ -159,7 +159,7 @@ def simular_por_websocket(args, sensor, rnd):
         espera = 1
         intervalo = args.intervalo or bienvenida.get("intervalo_s", 10)
         print(f"{hora()} 🔌 conectada como {bienvenida['codigo']} "
-              f"({'reclamada' if bienvenida['reclamada'] else 'sin dueño: toca el sticker NFC'}), lectura cada {intervalo}s")
+              f"({'reclamada' if bienvenida['reclamada'] else 'sin dueño: falta escanear el QR'}), lectura cada {intervalo}s")
 
         abierta = threading.Event()
         abierta.set()
@@ -181,7 +181,7 @@ def simular_por_websocket(args, sensor, rnd):
                     elif tipo == "lectura_ok":
                         print(f"{hora()}   -> {mensaje['estado']}")
                     elif mensaje.get("error") == "MATERA_SIN_DUENO":
-                        print(f"{hora()}   -> esperando a que alguien toque el sticker NFC y reclame la matera...")
+                        print(f"{hora()}   -> esperando a que alguien escanee el QR y reclame la matera...")
                     elif tipo == "error":
                         print(f"{hora()}   -> {mensaje.get('error')}: {mensaje.get('mensaje')}")
             except (OSError, ValueError, websocket.WebSocketException):
@@ -216,7 +216,8 @@ def main():
     parser = argparse.ArgumentParser(description="Simulador del ESP32 de la matera inteligente.")
     parser.add_argument("--url", default="http://localhost:5000", help="URL base del backend")
     parser.add_argument("--matera", help="Archivo JSON generado por 'flask fabricar-matera'")
-    parser.add_argument("--tocar-nfc", action="store_true", help="Abrir la URL del sticker NFC en el navegador")
+    parser.add_argument("--escanear-qr", "--tocar-nfc", dest="escanear_qr", action="store_true",
+                        help="Abrir la URL del QR de reclamo en el navegador (el 'escaneo' simulado)")
     parser.add_argument("--codigo", help="Código del dispositivo, ej. ESP32-01")
     parser.add_argument("--token", default=os.environ.get("MATERA_TOKEN_DISPOSITIVO"),
                         help="Token del dispositivo (o variable MATERA_TOKEN_DISPOSITIVO)")
@@ -229,25 +230,26 @@ def main():
     parser.add_argument("--semilla", type=int, help="Semilla aleatoria (para repetir una corrida)")
     args = parser.parse_args()
 
-    url_sticker = None
+    url_reclamo = None
     if args.matera:
         with open(args.matera, encoding="utf-8") as archivo:
             matera = json.load(archivo)
         args.codigo = args.codigo or matera["codigo"]
         args.token = args.token or matera["token_firmware"]
         args.perfil = args.perfil or matera.get("especie")
-        url_sticker = matera.get("url_sticker_nfc")
+        # url_sticker_nfc: materas fabricadas antes del cambio a QR
+        url_reclamo = matera.get("url_reclamo") or matera.get("url_sticker_nfc")
     args.perfil = args.perfil if args.perfil in PERFILES else "potos"
 
     if not args.codigo:
         parser.error("falta el código: usa --codigo o --matera")
     if not args.token:
         parser.error("falta el token: usa --token, --matera o la variable MATERA_TOKEN_DISPOSITIVO")
-    if args.tocar_nfc:
-        if not url_sticker:
-            parser.error("--tocar-nfc necesita --matera (de ahí sale la URL del sticker)")
-        print(f"📱 Teléfono acercado al sticker NFC de {args.codigo}: abriendo {url_sticker}")
-        webbrowser.open(url_sticker)
+    if args.escanear_qr:
+        if not url_reclamo:
+            parser.error("--escanear-qr necesita --matera (de ahí sale la URL del QR)")
+        print(f"📷 QR de {args.codigo} escaneado: abriendo {url_reclamo}")
+        webbrowser.open(url_reclamo)
 
     rnd = random.Random(args.semilla)
     sensor = SensorSimulado(PERFILES[args.perfil], rnd)
@@ -274,7 +276,7 @@ def main():
                     anterior = cuerpo
                     detalle = respuesta.get("estado")
                 elif respuesta.get("error") == "MATERA_SIN_DUENO":
-                    detalle = "esperando a que alguien toque el sticker NFC y reclame la matera..."
+                    detalle = "esperando a que alguien escanee el QR y reclame la matera..."
                 else:
                     detalle = f"{respuesta.get('error')}: {respuesta.get('mensaje')}"
                 valores = {k: cuerpo.get(k) for k in ("humedad", "luz", "temperatura")}

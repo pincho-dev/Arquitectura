@@ -1,7 +1,7 @@
 from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.exc import IntegrityError
 
-from domain.plantas import CodigoDispositivoEnUso, Dispositivo
+from domain.plantas import CodigoDispositivoEnUso, Dispositivo, TarjetaRfidEnUso
 from domain.puertos import EspecieNoEncontrada, RepositorioDispositivos
 from infrastructure.db.tablas import dispositivos, especies
 from infrastructure.tokens_dispositivo import hash_secreto
@@ -15,7 +15,7 @@ class RepositorioDispositivosBd(RepositorioDispositivos):
     def registrar(self, codigo, planta_id, token):
         return self._insertar(codigo, planta_id=planta_id, token_hash=hash_secreto(token))
 
-    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo):
+    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo, rfid_uid=None):
         with self.engine.connect() as conexion:
             especie_id = conexion.execute(
                 select(especies.c.id).where(especies.c.nombre == especie)
@@ -24,10 +24,22 @@ class RepositorioDispositivosBd(RepositorioDispositivos):
             raise EspecieNoEncontrada(f"La especie '{especie}' no se encuentra en la base de datos.")
         dispositivo = self._insertar(
             codigo, token_hash=hash_secreto(token), especie_id=especie_id,
-            clave_reclamo_hash=hash_secreto(clave_reclamo),
+            clave_reclamo_hash=hash_secreto(clave_reclamo), rfid_uid=rfid_uid,
         )
         dispositivo.especie = especie
+        dispositivo.rfid_uid = rfid_uid
         return dispositivo
+
+    def buscar_por_rfid(self, rfid_uid):
+        consulta = (
+            select(dispositivos.c.id, dispositivos.c.codigo, dispositivos.c.planta_id,
+                   dispositivos.c.ultima_conexion, dispositivos.c.rfid_uid, especies.c.nombre.label("especie"))
+            .outerjoin(especies, especies.c.id == dispositivos.c.especie_id)
+            .where(dispositivos.c.rfid_uid == rfid_uid, dispositivos.c.revocado_en.is_(None))
+        )
+        with self.engine.connect() as conexion:
+            f = conexion.execute(consulta).first()
+        return Dispositivo(f.id, f.codigo, f.planta_id, f.ultima_conexion, f.especie, f.rfid_uid) if f else None
 
     def buscar_para_reclamo(self, codigo, clave_reclamo):
         consulta = (
@@ -44,7 +56,7 @@ class RepositorioDispositivosBd(RepositorioDispositivos):
 
     def asignar_planta(self, dispositivo_id, planta_id):
         # El WHERE planta_id IS NULL hace el reclamo atómico: si dos usuarios
-        # tocan el sticker a la vez, solo uno actualiza la fila.
+        # la reclaman a la vez, solo uno actualiza la fila.
         with self.engine.begin() as conexion:
             resultado = conexion.execute(
                 update(dispositivos)
@@ -73,7 +85,7 @@ class RepositorioDispositivosBd(RepositorioDispositivos):
 
     def descartar_sin_reclamar(self, codigo):
         # Solo materas de fábrica que nadie reclamó y que nunca reportaron:
-        # el WHERE lo garantiza aunque alguien toque el sticker en ese momento.
+        # el WHERE lo garantiza aunque alguien la reclame en ese momento.
         with self.engine.begin() as conexion:
             resultado = conexion.execute(
                 delete(dispositivos).where(
@@ -91,7 +103,10 @@ class RepositorioDispositivosBd(RepositorioDispositivos):
                     insert(dispositivos).values(codigo=codigo, **valores).returning(dispositivos.c.id)
                 ).scalar_one()
         except IntegrityError as error:
-            if getattr(error.orig.diag, "constraint_name", None) == "uq_dispositivos_codigo":
+            restriccion = getattr(error.orig.diag, "constraint_name", None)
+            if restriccion == "uq_dispositivos_codigo":
                 raise CodigoDispositivoEnUso(f"Ya existe un dispositivo con el código '{codigo}'.")
+            if restriccion == "uq_dispositivos_rfid_uid":
+                raise TarjetaRfidEnUso(f"La tarjeta RFID {valores.get('rfid_uid')} ya está pegada a otra matera.")
             raise
         return Dispositivo(dispositivo_id, codigo, valores.get("planta_id"))

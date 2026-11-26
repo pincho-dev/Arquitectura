@@ -5,8 +5,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from flask import Flask
 
-from application.materas import DescartarMatera, FabricarMatera, ReclamarMatera
-from domain.plantas import Dispositivo, MateraYaReclamada
+from application.materas import DescartarMatera, FabricarMatera, IdentificarMatera, ReclamarMatera
+from domain.plantas import DatosDePlantaInvalidos, Dispositivo, MateraYaReclamada, normalizar_uid_rfid
 from presentation.api_fabrica import crear_api_fabrica
 from tests.test_plantas import DUENA, _GeneradorFalso, _RepositorioDispositivosFalso, _RepositorioPlantasFalso
 
@@ -20,6 +20,7 @@ def fabrica():
     app = Flask(__name__)
     app.register_blueprint(crear_api_fabrica(
         FabricarMatera(dispositivos, _GeneradorFalso()), DescartarMatera(dispositivos), CLAVE, "http://192.168.1.50:5500/",
+        identificar_matera=IdentificarMatera(dispositivos),
     ))
     return app.test_client(), dispositivos, ReclamarMatera(dispositivos, plantas)
 
@@ -41,15 +42,60 @@ def test_fabrica_deshabilitada_sin_clave_configurada():
     assert respuesta.status_code == 503
 
 
-def test_fabrica_entrega_token_y_url_del_sticker(fabrica):
+def test_fabrica_entrega_token_url_del_qr_y_guarda_la_tarjeta(fabrica):
     cliente, dispositivos, _ = fabrica
-    respuesta = _post(cliente, {"especie": "potos", "codigo": "mat-0001"})
+    respuesta = _post(cliente, {"especie": "potos", "codigo": "mat-0001", "rfid_uid": "04:a1:b2:c3"})
     assert respuesta.status_code == 201
     cuerpo = respuesta.get_json()
     assert cuerpo["codigo"] == "MAT-0001"
+    assert cuerpo["rfid_uid"] == "04A1B2C3"
     assert cuerpo["token_firmware"] == "dev_token_de_prueba"
-    assert cuerpo["url_sticker_nfc"] == "http://192.168.1.50:5500/reclamar.html?codigo=MAT-0001&clave=clave-sticker"
+    assert cuerpo["url_reclamo"] == "http://192.168.1.50:5500/reclamar.html?codigo=MAT-0001&clave=clave-sticker"
     assert dispositivos.buscar_por_codigo("MAT-0001").planta_id is None
+
+
+def test_fabrica_sin_tarjeta_sigue_funcionando(fabrica):
+    cliente, _, _ = fabrica
+    cuerpo = _post(cliente, {"especie": "potos"}).get_json()
+    assert cuerpo["rfid_uid"] is None
+
+
+def test_la_misma_tarjeta_no_se_puede_pegar_a_dos_materas(fabrica):
+    cliente, _, _ = fabrica
+    assert _post(cliente, {"especie": "potos", "rfid_uid": "04A1B2C3"}).status_code == 201
+    respuesta = _post(cliente, {"especie": "potos", "rfid_uid": "04 a1 b2 c3"})
+    assert respuesta.status_code == 409
+    assert respuesta.get_json()["error"] == "TARJETA_RFID_EN_USO"
+
+
+@pytest.mark.parametrize("uid", ["xyz", "04A1B2", "04A1B2C3D4", 1234])
+def test_uid_rfid_invalido_se_rechaza(fabrica, uid):
+    cliente, _, _ = fabrica
+    assert _post(cliente, {"especie": "potos", "rfid_uid": uid}).status_code == 400
+
+
+def test_normalizar_uid_rfid_acepta_4_7_y_10_bytes():
+    assert normalizar_uid_rfid("de:ad:be:ef") == "DEADBEEF"
+    assert normalizar_uid_rfid("04-11-22-33-44-55-66") == "04112233445566"
+    assert len(normalizar_uid_rfid("0" * 20)) == 20
+    with pytest.raises(DatosDePlantaInvalidos):
+        normalizar_uid_rfid("")
+
+
+def test_identificar_matera_por_su_tarjeta(fabrica):
+    cliente, _, reclamar = fabrica
+    _post(cliente, {"especie": "potos", "codigo": "MAT-A", "rfid_uid": "04A1B2C3"})
+    cabecera = {"X-Fabrica-Clave": CLAVE}
+
+    cuerpo = cliente.get("/api/fabrica/materas/rfid/04a1b2c3", headers=cabecera).get_json()
+    assert cuerpo == {"codigo": "MAT-A", "especie": "potos", "rfid_uid": "04A1B2C3", "reclamada": False}
+
+    reclamar.ejecutar(DUENA, "MAT-A", "clave-sticker")
+    assert cliente.get("/api/fabrica/materas/rfid/04A1B2C3", headers=cabecera).get_json()["reclamada"] is True
+    respuesta = cliente.get("/api/fabrica/materas/rfid/DEADBEEF", headers=cabecera)
+    assert respuesta.status_code == 404
+    assert respuesta.get_json()["error"] == "TARJETA_RFID_DESCONOCIDA"
+    assert cliente.get("/api/fabrica/materas/rfid/04A1B2C3").status_code == 401
 
 
 def test_fabrica_genera_codigo_si_no_se_da_y_valida_especie(fabrica):

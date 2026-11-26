@@ -1,4 +1,4 @@
-// Flujo manual (sin sticker NFC): se genera el token y se pega en el firmware.
+// Flujo manual (sin QR de fábrica): se genera el token y se pega en el firmware.
 const PLANTA_ID = new URLSearchParams(window.location.search).get('planta_id');
 const copyBtn = document.getElementById('copy-btn');
 const tokenInput = document.getElementById('device-token');

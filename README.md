@@ -8,8 +8,8 @@ Proyecto de corte — Arquitectura de Software. Servicio que, dadas unas medicio
 backend/     API Flask (dominio, aplicación, presentación, infraestructura)
 frontend/    Cliente HTML/CSS/JS estático, servido por separado del backend
 docs/        Documento de arquitectura, diagramas y bitácora de uso de IA
-fabrica/     Estación de fábrica con lector NFC por USB (graba el sticker y genera el config del ESP32)
-firmware/    Firmware del ESP32 (Arduino), conectado por WebSocket
+fabrica/     Estación de fábrica: QR de reclamo + config del ESP32 (lector RFID RC522 opcional)
+firmware/    Firmware del ESP32 de la matera (WebSocket) y del puente USB del lector RC522
 ```
 
 Dentro de `backend/`:
@@ -66,29 +66,31 @@ La API queda disponible en `http://localhost:5000`.
 | `GET /api/plantas/{id}/estado` | JWT usuario | Estado, última lectura e historial (403 si la planta es ajena) |
 | `POST /api/plantas/{id}/lecturas` | JWT usuario | Lectura manual desde el formulario |
 | `POST /api/plantas/{id}/duenos` | JWT usuario | `{correo}`: comparte la planta con otro usuario registrado (solo un dueño puede) |
-| `POST /api/plantas/reclamar` | JWT usuario | `{codigo, clave}` del sticker NFC: la matera y su planta pasan a ser del usuario |
+| `POST /api/plantas/reclamar` | JWT usuario | `{codigo, clave}` del QR de la etiqueta: la matera y su planta pasan a ser del usuario |
+| `PATCH /api/plantas/{id}` | JWT usuario | `{nombre}`: renombra la planta (solo un dueño) |
 | `POST /api/plantas/{id}/dispositivos` | JWT usuario | `{codigo}` → token del dispositivo (se muestra una sola vez) |
 | `GET /api/dispositivos` | JWT usuario | Materas del usuario (propias y compartidas) con su planta y si están conectadas |
 | `POST /api/dispositivos/{codigo}/lecturas` | Token de dispositivo | `{dispositivo, medida_en, humedad, luz, temperatura}` |
 | `POST /api/dispositivos/{codigo}/ordenes` | JWT usuario | `{orden, parametros}` → la orden viaja al ESP32 por su WebSocket (`parpadear`, `reportar`, `regar {segundos}`); 409 si no está conectada |
-| `POST /api/fabrica/materas` | `X-Fabrica-Clave` | `{especie, codigo?}` → token del firmware y URL del sticker (lo usa `fabrica/estacion.py`) |
-| `DELETE /api/fabrica/materas/{codigo}` | `X-Fabrica-Clave` | Descarta una matera que nadie reclamó (falló la grabación del sticker) |
+| `POST /api/fabrica/materas` | `X-Fabrica-Clave` | `{especie, codigo?, rfid_uid?}` → token del firmware y `url_reclamo` del QR (lo usa `fabrica/estacion.py`); 409 si la tarjeta ya está en otra matera |
+| `GET /api/fabrica/materas/rfid/{uid}` | `X-Fabrica-Clave` | Qué matera tiene pegada esa tarjeta RFID y si ya tiene dueño |
+| `DELETE /api/fabrica/materas/{codigo}` | `X-Fabrica-Clave` | Descarta una matera que nadie reclamó (la estación no pudo generar su etiqueta) |
 | `WS /ws/dispositivos` | Token de dispositivo (1.er mensaje) | Conexión permanente del ESP32: lecturas, órdenes y presencia en vivo |
 | `WS /ws/app` | JWT usuario (1.er mensaje) | Avisos en vivo al front: lecturas, conexión/desconexión de materas, órdenes cumplidas |
 | `POST /diagnostico`, `GET /especies` | — | Endpoints de la fase 1 |
 
-## Materas con sticker NFC (fábrica y reclamo simulados)
+## Materas con QR de reclamo (fábrica y reclamo simulados)
 
-Cada matera sale de "fábrica" sin dueño: su token va en el firmware y una clave de reclamo en el sticker NFC. Al acercar el teléfono, el sticker abre `reclamar.html?codigo=...&clave=...` y la planta queda agregada a la cuenta del usuario. Mientras nadie la reclame, el backend rechaza sus lecturas.
+Cada matera sale de "fábrica" sin dueño: su token va en el firmware y una clave de reclamo en el QR de su etiqueta. Al escanearlo con la cámara, el teléfono abre `reclamar.html?codigo=...&clave=...` y la planta queda agregada a la cuenta del usuario. Mientras nadie la reclame, el backend rechaza sus lecturas. El paso a paso con diagramas está en [`docs/FLUJO_FABRICA_Y_CONEXION.md`](docs/FLUJO_FABRICA_Y_CONEXION.md).
 
 ```bash
 cd backend
 flask --app presentation.app fabricar-matera --especie potos      # crea materas_fabricadas/MAT-XXXX.json
 cd ..
-python simulador_esp32.py --matera materas_fabricadas/MAT-XXXX.json --tocar-nfc
+python simulador_esp32.py --matera materas_fabricadas/MAT-XXXX.json --escanear-qr
 ```
 
-`--tocar-nfc` abre la URL del sticker en el navegador (el "toque" simulado). Con un sticker real, se graba esa URL con cualquier app de NFC (ej. NFC Tools) y se usa la IP de la red local en `FRONT_URL`.
+`--escanear-qr` abre la URL del QR en el navegador (el "escaneo" simulado). Para escanearlo con un teléfono real, usa la IP de la red local en `FRONT_URL`.
 
 ## Tiempo real con WebSockets
 
@@ -107,15 +109,16 @@ kill -CONT <pid>   # vuelve y se reconecta sola
 
 Limitación conocida: las conexiones viven en la memoria del proceso (`infrastructure/canal_websocket.py`). Con varios procesos o servidores haría falta un broker (Redis pub/sub o MQTT).
 
-## Estación de fábrica con lector NFC (`fabrica/`)
+## Estación de fábrica (`fabrica/`)
 
-La versión física de `flask fabricar-matera`: registra la matera en el backend (`POST /api/fabrica/materas`), graba la URL de reclamo en un sticker NFC virgen con un lector USB (ACR122U o compatible con nfcpy), la relee para verificarla y genera `fabrica/salida/<CODIGO>.h`, el `config.h` del firmware. Si la grabación falla, descarta la matera. Ver `fabrica/README.md`.
+La versión física de `flask fabricar-matera`: registra la matera en el backend (`POST /api/fabrica/materas`), genera la **etiqueta con el QR de reclamo** (`fabrica/salida/<CODIGO>_etiqueta.png`, y lo dibuja en la terminal) y `fabrica/salida/<CODIGO>.h`, el `config.h` del firmware. Con `--rfid`, antes de cada matera se acerca una tarjeta RFID al lector **RC522** (conectado a un ESP32/Arduino con `firmware/estacion_rfid/`) y su UID queda guardado: sirve para identificar la matera en la fábrica, **no** para vincularla. Ver `fabrica/README.md`.
 
 ```bash
 cd fabrica && python -m venv .venv && .venv/bin/pip install -r requirements.txt
 cp .env.example .env          # FABRICA_CLAVE igual a la de backend/.env, IP del PC y WiFi del ESP32
-.venv/bin/python estacion.py --especie potos            # con el lector USB
-.venv/bin/python estacion.py --especie potos --simular  # sin lector
+.venv/bin/python estacion.py --especie potos                  # solo QR
+.venv/bin/python estacion.py --especie potos --rfid           # + tarjeta con el RC522
+.venv/bin/python estacion.py --identificar                    # ¿de qué matera es esta tarjeta?
 ```
 
 ## Firmware del ESP32 (`firmware/matera_esp32/`)

@@ -201,6 +201,27 @@
   - **Tests:** 31 nuevos en el backend (135 en total), incluido el WebSocket contra un servidor real y el heartbeat, y 3 de la estación. Probado de punta a punta con PostgreSQL: estación simulada → simulador `--ws` sin dueño → reclamo → lecturas en vivo → orden y su confirmación → `kill -STOP` detectado a los 5,5 s → reconexión; y en Chromium headless, las páginas en vivo y el paso a "Desconectado" sin recargar.
 - **Se aceptó / cambió:** — (pendiente de revisión del equipo). **Nota de honestidad:** este código no lo escribió el equipo; para la sustentación hay que poder explicar los dos WebSockets, el heartbeat y por qué el dominio no sabe que existen. **El `.ino` no se pudo compilar en el PC** (no hay toolchain de Arduino).
 
+## Sesión 2026-11-26 — Renombrar plantas, fábrica con QR + RFID opcional
+
+### 1. `PATCH /api/plantas/{id}` (renombrar) — escrito por Julián, revisado por la IA
+- **Se pidió:** guía paso a paso para el primer pendiente de la gamificación (que el usuario le ponga nombre a su planta). Julián escribe el código; la IA revisa y escribe los tests.
+- **Propuso la IA:** recorrer todas las capas: método `renombrar` en el puerto `RepositorioPlantas`, `RenombrarPlantaPort`, caso de uso `RenombrarPlanta` (verificar que exista, regla R7 de acceso, nombre no vacío y ≤ 100 como la columna), adaptador SQL y ruta, conectado en `app.py`.
+- **Se aceptó / cambió:** Julián lo escribió. Al revisarlo, la IA corrigió 4 errores y explicó cada uno: un error de tipeo en la clase base (`RonombrarPlantaPort` → `NameError` al importar), el parámetro `renombrar_planta` que faltaba en `crear_api_plantas` (habría dado 500 en el primer PATCH), la falta de cableado en `app.py` y el repositorio falso de los tests sin `renombrar` (el `@abstractmethod` impedía instanciarlo). La IA agregó 5 tests.
+
+### 2. Fábrica: de stickers NFC a QR + lector RFID RC522 opcional — escrito directamente por la IA
+- **Se pidió:** el equipo compró un lector **RFID RC522** en vez de stickers NFC; **explícitamente que la IA cambiara la fábrica** y subiera los cambios para que el equipo pruebe, más un diagrama de flujo de la fábrica y del handshake.
+- **Propuso la IA:** el celular no puede leer estas tarjetas (el iPhone no lee MIFARE Classic), así que el reclamo pasa a un **QR** impreso con la misma URL que antes iba en el sticker (`reclamar.html?codigo&clave`). Se aclaró que **la tarjeta no hace falta para vincular la ESP con la planta**: eso lo hace el código de la matera (token en el firmware y clave en el QR). La tarjeta solo identifica la matera en la fábrica.
+- **Se aceptó / cambió:** el equipo decidió **QR como flujo principal y RFID opcional** (`--rfid`). Cambios:
+  - Dominio: `Dispositivo.rfid_uid`, `normalizar_uid_rfid` (4, 7 o 10 bytes en hex), `TarjetaRfidEnUso`, `TarjetaRfidDesconocida`; `registrar_de_fabrica(..., rfid_uid=None)` y `buscar_por_rfid` en el puerto; caso de uso `IdentificarMatera`.
+  - BD: migración `0004` con la columna `rfid_uid` UNIQUE (nula si la matera no tiene tarjeta).
+  - API: `POST /api/fabrica/materas` acepta `rfid_uid` opcional y devuelve `url_reclamo` (antes `url_sticker_nfc`); 409 `TARJETA_RFID_EN_USO`; nueva `GET /api/fabrica/materas/rfid/{uid}`. El error `STICKER_INVALIDO` pasa a llamarse `CLAVE_RECLAMO_INVALIDA`.
+  - `fabrica/`: se quitó nfcpy; `etiqueta.py` genera el PNG con el QR + código + clave y dibuja el QR en la terminal; `lector_rfid.py` habla por USB-serial con el puente; modo `--identificar`.
+  - `firmware/estacion_rfid/`: sketch puente RC522 → USB (ESP32 o Arduino), con el cableado documentado.
+  - Front: `reclamar.html` explica cómo escanear el QR (se quitó Web NFC); simulador con `--escanear-qr` (`--tocar-nfc` sigue funcionando como alias).
+  - `docs/FLUJO_FABRICA_Y_CONEXION.md`: diagramas Mermaid de los secretos, la fábrica, login + reclamo, el handshake de la ESP y el de `/ws/app`.
+  - Probado: 148 tests del backend y 5 de la estación; migración arriba, abajo y arriba otra vez; contra Postgres: estación solo QR, estación con RFID simulado, identificar, tarjeta repetida (409), reclamo con clave mala (404) y buena, y renombrar. **El sketch del RC522 no se compiló** (no hay toolchain de Arduino en el PC) **ni se probó con el lector real**.
+- **Nota de honestidad:** igual que en la integración del WebSocket, este código no lo escribió el equipo. Para la sustentación hay que poder explicar por qué la tarjeta no participa en el vínculo y por qué el QR no lleva el token.
+
 ---
 
 ## Pendientes abiertos (para no perderlos)
@@ -218,9 +239,10 @@
 - [x] ~~Driver, migraciones, `DATABASE_URL` y secreto~~ → `psycopg`, Alembic, `JWT_SECRET` en `.env`.
 - [ ] Preparar para la sustentación la justificación de implementar gestión de usuarios/autenticación pese a estar listada como "No entra" en la sección 2 del enunciado (fue pedido verbal del profesor, sesión 2026-09-30).
 - [ ] Escribir el documento de arquitectura de la Fase 2 (lo escribe el equipo): diagrama hexagonal con nombres reales, tabla de puertos/adaptadores, dónde se emite y se verifica el JWT, 3 principios SOLID, enlace al commit `a91628b` y análisis MQTT.
-- [ ] Probar el flujo NFC desde un teléfono real en la red local (`--host 0.0.0.0`, `FRONT_URL` y `CORS_ORIGIN` con la IP del PC) y grabar la URL en un sticker real.
+- [ ] Probar el flujo del QR desde un teléfono real en la red local (`--host 0.0.0.0`, `FRONT_URL` y `CORS_ORIGIN` con la IP del PC).
 - [ ] Conectar el ESP32 físico del equipo (falta saber qué sensores tiene para escribir el firmware).
 - [ ] Compilar y subir el nuevo `firmware/matera_esp32/matera_esp32.ino` (WebSocket) a la ESP32 real; instalar las bibliotecas WebSockets y ArduinoJson.
-- [ ] Probar la estación de fábrica con el lector NFC USB real y stickers NTAG.
+- [x] ~~Probar la estación con el lector NFC USB real y stickers NTAG~~ → el equipo compró un RC522: la fábrica pasó a QR + RFID opcional (sesión 2026-11-26).
+- [ ] Compilar `firmware/estacion_rfid/` (biblioteca MFRC522), cablear el RC522 a 3.3 V y probar `estacion.py --rfid` y `--identificar` con las tarjetas reales.
 - [ ] Justificar en el documento por qué el front usa WebSocket si R6 pedía consulta periódica (directriz verbal del profesor; la consulta periódica quedó como respaldo).
-- [ ] Gamificación: cerrar pesos del puntaje, ranking global o entre amigos, temporadas; tabla de sesiones de conexión para medir el tiempo conectado; `PATCH /api/plantas/{id}` para el nombre; galería de fotos (puerto `AlmacenFotos`, quitar EXIF).
+- [ ] Gamificación: cerrar pesos del puntaje, ranking global o entre amigos, temporadas; tabla de sesiones de conexión para medir el tiempo conectado (siguiente paso, guía ya dada); ~~`PATCH /api/plantas/{id}` para el nombre~~ (hecho 2026-11-26); galería de fotos (puerto `AlmacenFotos`, quitar EXIF).

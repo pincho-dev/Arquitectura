@@ -31,10 +31,30 @@ class MateraSinDueno(Exception):
 class InvitadoNoRegistrado(Exception):
     pass
 
+class TarjetaRfidEnUso(Exception):
+    pass
+
+class TarjetaRfidDesconocida(Exception):
+    pass
+
 class DatosDePlantaInvalidos(Exception):
     def __init__(self, mensaje, campo=None):
         super().__init__(mensaje)
         self.campo = campo
+
+
+# Los UID de MIFARE miden 4, 7 o 10 bytes (8, 14 o 20 dígitos hexadecimales).
+LARGOS_UID_RFID = (8, 14, 20)
+
+
+def normalizar_uid_rfid(uid):
+    """'04:a1 b2-c3' -> '04A1B2C3'. El lector puede mandarlo con separadores o
+    en minúscula; en la BD queda siempre igual para que el UNIQUE funcione."""
+    limpio = "".join(c for c in uid if c not in ": -").upper()
+    if len(limpio) not in LARGOS_UID_RFID or any(c not in "0123456789ABCDEF" for c in limpio):
+        raise DatosDePlantaInvalidos(
+            "El UID de la tarjeta RFID debe ser hexadecimal de 4, 7 o 10 bytes (ej. 04A1B2C3).", campo="rfid_uid")
+    return limpio
 
 
 class Planta:
@@ -51,13 +71,15 @@ class Planta:
 
 
 class Dispositivo:
-    def __init__(self, id, codigo, planta_id, ultima_conexion=None, especie=None):
+    def __init__(self, id, codigo, planta_id, ultima_conexion=None, especie=None, rfid_uid=None):
         self.id = id
         self.codigo = codigo
         self.planta_id = planta_id
         self.ultima_conexion = ultima_conexion
         # Especie del kit de fábrica; solo se usa al reclamar la matera.
         self.especie = especie
+        # UID de la tarjeta RFID que la fábrica le pegó a la matera (su "placa").
+        self.rfid_uid = rfid_uid
 
     def tiene_dueno(self):
         # Una matera sin planta todavía no pertenece a ningún usuario.

@@ -15,7 +15,7 @@ from application.vincular_dispositivo import VincularDispositivo
 from domain.modelos import RangosEspecie, ValorFueraDeRangoFisico
 from domain.plantas import (
     AccesoDenegado, ClaveDeReclamoInvalida, DatosDePlantaInvalidos, Dispositivo, InvitadoNoRegistrado, LecturaDuplicada,
-    MateraSinDueno, MateraYaReclamada, Planta, PlantaNoEncontrada,
+    MateraSinDueno, MateraYaReclamada, Planta, PlantaNoEncontrada, TarjetaRfidEnUso,
 )
 from domain.puertos import (
     EspecieLookup, EspecieNoEncontrada, GeneradorTokensDispositivo, HistorialLecturas,
@@ -95,12 +95,18 @@ class _RepositorioDispositivosFalso(RepositorioDispositivos):
     def listar_de_planta(self, planta_id):
         return [d for d in self.dispositivos if d.planta_id == planta_id]
 
-    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo):
+    def registrar_de_fabrica(self, codigo, especie, token, clave_reclamo, rfid_uid=None):
         _EspecieLookupFalso().obtener_rangos(especie)
+        if rfid_uid is not None and self.buscar_por_rfid(rfid_uid) is not None:
+            raise TarjetaRfidEnUso(f"La tarjeta RFID {rfid_uid} ya está pegada a otra matera.")
         dispositivo = self.registrar(codigo, None, token)
         dispositivo.especie = especie
+        dispositivo.rfid_uid = rfid_uid
         self.claves[codigo] = clave_reclamo
         return dispositivo
+
+    def buscar_por_rfid(self, rfid_uid):
+        return next((d for d in self.dispositivos if d.rfid_uid == rfid_uid), None)
 
     def buscar_para_reclamo(self, codigo, clave_reclamo):
         if self.claves.get(codigo) != clave_reclamo:
@@ -300,7 +306,7 @@ def test_usuario_ajeno_no_puede_vincular_dispositivos(entorno):
         entorno["vincular"].ejecutar(AJENO, entorno["planta"].id, "ESP32-99")
 
 
-# -------------------------------------------- materas: fábrica y sticker NFC
+# ------------------------------------- materas: fábrica (RFID) y reclamo por QR
 
 @pytest.fixture
 def fabrica():

@@ -63,7 +63,7 @@ async function cargarDashboard() {
 
   grid.innerHTML = '';
   if (plantas.length === 0) {
-    grid.innerHTML = `<p class="empty-note">Aún no tienes plantas. Acerca tu teléfono al sticker NFC de tu matera
+    grid.innerHTML = `<p class="empty-note">Aún no tienes plantas. Escanea el QR de la etiqueta de tu matera
       o usa <a href="reclamar.html">+ Nueva planta</a>.</p>`;
   }
   plantas.forEach(p => grid.appendChild(tarjetaPlanta(p)));

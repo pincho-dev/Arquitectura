@@ -18,7 +18,7 @@ from application.diagnosticar_planta import DiagnosticarPlanta
 from application.registrar_lectura import RegistrarLectura
 from application.vincular_dispositivo import VincularDispositivo
 from application.iniciar_sesion import IniciarSesion
-from application.materas import DescartarMatera, FabricarMatera, ReclamarMatera
+from application.materas import DescartarMatera, FabricarMatera, IdentificarMatera, ReclamarMatera
 from application.registrar_usuario import RegistrarUsuario
 from infrastructure.autenticador_dispositivos_bd import AutenticadorDispositivosBd
 from infrastructure.canal_websocket import CanalAppWebSocket, CanalDispositivosWebSocket
@@ -116,13 +116,14 @@ app.register_blueprint(crear_api_mis_dispositivos(
 ))
 
 # Fábrica: el mismo caso de uso por dos adaptadores de entrada, la consola
-# (flask fabricar-matera) y la API de la estación con lector NFC (fabrica/).
+# (flask fabricar-matera) y la API de la estación con lector RFID (fabrica/).
 url_front = os.environ.get("FRONT_URL", "http://localhost:5500")
 fabricar_matera = FabricarMatera(repositorio_dispositivos, generador_tokens_dispositivo)
 registrar_cli_fabrica(app, fabricar_matera, url_front)
 app.register_blueprint(crear_api_fabrica(
     fabricar_matera, DescartarMatera(repositorio_dispositivos),
     os.environ.get("FABRICA_CLAVE", ""), url_front,
+    identificar_matera=IdentificarMatera(repositorio_dispositivos),
 ))
 
 # Adaptadores de entrada de dispositivos (R2): HTTP y WebSocket reutilizan el

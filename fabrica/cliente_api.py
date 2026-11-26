@@ -30,11 +30,16 @@ class ClienteFabrica:
             raise ErrorApi(cuerpo.get("mensaje", respuesta.text), respuesta.status_code, cuerpo.get("error"))
         return respuesta.json() if respuesta.content else None
 
-    def fabricar(self, especie, codigo=None):
+    def fabricar(self, especie, codigo=None, rfid_uid=None):
         cuerpo = {"especie": especie}
         if codigo:
             cuerpo["codigo"] = codigo
+        if rfid_uid:
+            cuerpo["rfid_uid"] = rfid_uid
         return self._llamar("POST", "/api/fabrica/materas", json=cuerpo)
+
+    def identificar(self, rfid_uid):
+        return self._llamar("GET", f"/api/fabrica/materas/rfid/{rfid_uid}")
 
     def descartar(self, codigo):
         return self._llamar("DELETE", f"/api/fabrica/materas/{codigo}")

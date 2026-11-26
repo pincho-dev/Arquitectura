@@ -1,7 +1,7 @@
 // Cliente de la API compartido por todas las pantallas.
 // El host se toma de la página: así funciona igual en el PC (localhost) que
 // desde el teléfono en la red local (ej. 192.168.1.12), que es como se abre
-// la URL del sticker NFC.
+// la URL del QR de reclamo.
 const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:5000/api`;
 
 const Sesion = {
@@ -15,7 +15,7 @@ const Sesion = {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('usuario_nombre');
   },
-  // Manda al login y recuerda a dónde volver (ej. la URL del sticker NFC).
+  // Manda al login y recuerda a dónde volver (ej. la URL del QR de reclamo).
   exigir() {
     if (!Sesion.token()) {
       sessionStorage.setItem('volver_a', window.location.href);
