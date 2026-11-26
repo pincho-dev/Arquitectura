@@ -186,6 +186,21 @@ python simulador_esp32.py --matera materas_fabricadas/MAT-XXXX.json --ws
 
 Para que el celular abra el QR, `FRONT_URL` en `backend/.env` y `ESP_SERVIDOR` en `fabrica/.env` tienen que usar la **IP del PC en la red** (no `localhost`), y `CORS_ORIGIN` tiene que permitir esa IP.
 
+### Con la ESP32 real (en el PC que tenga el Arduino IDE)
+
+> El firmware **todavía no se ha compilado ni subido a una placa**: si sale un error de compilación, anótenlo tal cual. Los sensores aún son **simulados** (`leerSensores()` en el `.ino`): para probar la conexión y la página alcanza; para datos reales solo hay que cambiar esa función.
+
+1. Arduino IDE → *Boards Manager*: **esp32** (Espressif). *Library Manager*: **WebSockets** (Markus Sattler) y **ArduinoJson** (Benoit Blanchon).
+2. El PC del backend y la ESP32 en **la misma red WiFi de 2,4 GHz** (la ESP32 no ve redes de 5 GHz). Las redes de la universidad suelen bloquear el tráfico entre equipos: si no conecta, usen el **hotspot de un celular**.
+3. Sacar la IP del PC (`ip a` en Linux, `ipconfig` en Windows) y ponerla en:
+   - `backend/.env`: `FRONT_URL=http://<IP>:5500` y `CORS_ORIGIN=http://<IP>:5500,http://localhost:5500`
+   - `fabrica/.env`: `ESP_SERVIDOR=<IP>:5000`, `ESP_WIFI_SSID` y `ESP_WIFI_CLAVE`
+4. Backend con `--host 0.0.0.0` (si no, solo acepta conexiones del mismo PC) y front con `python -m http.server 5500`. Si el PC tiene firewall, abrir los puertos 5000 y 5500.
+5. `fabrica/.venv/bin/python fabrica/estacion.py --especie potos --una` → copiar `fabrica/salida/MAT-XXXX.h` como `firmware/matera_esp32/config.h`.
+6. Abrir `firmware/matera_esp32/matera_esp32.ino`, placa **ESP32 Dev Module**, elegir el puerto y subir. Si se queda en *Connecting…*, mantener presionado el botón **BOOT** de la placa mientras empieza a subir.
+7. Monitor Serie a **115200**: debe conectarse al WiFi, luego al servidor, y decir *sin dueño: falta escanear el QR*.
+8. Escanear el QR (en la terminal de la estación o en `salida/MAT-XXXX_etiqueta.png`) con el celular e iniciar sesión → la planta aparece y las lecturas llegan en vivo. En *Dispositivos*, **Parpadear** hace titilar el LED azul de la placa.
+
 ### Errores comunes
 
 | Síntoma | Causa |
@@ -195,4 +210,6 @@ Para que el celular abra el QR, `FRONT_URL` en `backend/.env` y `ESP_SERVIDOR` e
 | La ESP se conecta pero dice `MATERA_SIN_DUENO` | Normal: falta que alguien escanee el QR |
 | La ESP se cierra con 4401 | El `config.h` no es el de esa matera, o la matera se descartó |
 | `ERROR RC522 sin respuesta` | Cableado del lector; revisa que esté a 3.3 V (ver `fabrica/README.md`) |
+| La ESP no pasa de "conectando al WiFi" | Red de 5 GHz, clave mal escrita en `fabrica/.env` (se regenera el `.h`) o red con portal cautivo |
+| WiFi OK pero no llega al servidor | IP equivocada en `ESP_SERVIDOR`, backend sin `--host 0.0.0.0`, firewall o red que aísla equipos |
 | `Permission denied: /dev/ttyUSB0` | Agrega tu usuario al grupo `uucp` (Arch) o `dialout` (Ubuntu) |
