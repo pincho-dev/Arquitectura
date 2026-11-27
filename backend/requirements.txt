@@ -16,3 +16,6 @@ bcrypt
 flask-sock
 # Cliente WebSocket para los tests y para simulador_esp32.py --ws
 websocket-client
+
+# Galería: validar las fotos por su contenido, quitarles el EXIF (GPS) y reducirlas
+pillow

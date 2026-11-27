@@ -1,0 +1,400 @@
+/* Página de la liga. Usa las variables y la barra de navegación de dashboard.css. */
+
+.volver { color: inherit; text-decoration: none; }
+
+.liga {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  max-width: 1200px;
+}
+
+/* Color de acento de cada división (el del metal del emblema). */
+[data-division="semilla"] { --acento: #e0a46b; --acento-fondo: #2a1c12; }
+[data-division="brote"]   { --acento: #c9d2db; --acento-fondo: #1b222b; }
+[data-division="hoja"]    { --acento: #f2c94c; --acento-fondo: #241e0c; }
+[data-division="flor"]    { --acento: #6fe3b0; --acento-fondo: #0d241c; }
+[data-division="arbol"]   { --acento: #9ccbfa; --acento-fondo: #111c33; }
+
+/* ------------------------------------------------------------ mi división */
+
+.liga-hero {
+  background: #10151a;
+  color: #eef2ee;
+  border-radius: 24px;
+  padding: 2rem 2.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2rem;
+  min-height: 260px;
+}
+
+.liga-cargando { color: #b9c4be; }
+
+.hero-emblema {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: var(--acento-fondo, #1b222b);
+}
+
+.hero-info {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hero-mes {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9aa7a0;
+}
+
+.mes-boton {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #2e3a42;
+  background: transparent;
+  color: #eef2ee;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.mes-boton:disabled { opacity: 0.35; cursor: default; }
+
+.hero-metal {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.hero-division {
+  font-size: 2.8rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.hero-puntos, .hero-faltan { color: #d5ddd8; }
+.hero-puntos strong, .hero-faltan strong { color: #fff; }
+.hero-anterior { font-size: 0.85rem; color: #9aa7a0; }
+
+.barra {
+  height: 10px;
+  border-radius: 999px;
+  background: #222c33;
+  overflow: hidden;
+  margin: 0.3rem 0;
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--acento);
+  transition: width 0.6s ease;
+}
+
+.barra-clara { background: var(--border); height: 8px; }
+.barra-clara span { background: var(--primary); }
+
+.boton-fantasma {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid #2e3a42;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.boton-primario {
+  min-height: 44px;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.boton-primario:disabled, .boton-fantasma:disabled { opacity: 0.6; cursor: default; }
+
+.boton-chico { min-height: 36px; padding: 0.35rem 0.8rem; font-size: 0.8rem; }
+.liga-bloque .boton-fantasma { border-color: #d6ddd6; color: var(--text-dark); }
+
+/* ---------------------------------------------------------------- bloques */
+
+.liga-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 1.8rem;
+  align-items: start;
+}
+
+.liga-bloque {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.bloque-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.bloque-titulo { font-size: 1.05rem; font-weight: 800; letter-spacing: 0.03em; }
+
+.nota { font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; }
+.nota a { color: var(--primary); font-weight: 600; }
+
+.tabs {
+  display: flex;
+  gap: 0.3rem;
+  background: #f0f3ef;
+  padding: 0.25rem;
+  border-radius: 999px;
+}
+
+.tab {
+  min-height: 36px;
+  padding: 0.35rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.tab.activo { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+
+/* ---------------------------------------------------------------- ranking */
+
+.ranking { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+
+.fila {
+  display: grid;
+  grid-template-columns: 2rem 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 14px;
+}
+
+.fila:nth-child(odd) { background: #fafbfa; }
+.fila-yo, .fila-yo:nth-child(odd) { background: #e5ede5; }
+
+.fila-pos { font-weight: 800; font-size: 1.05rem; text-align: center; color: var(--text-muted); }
+.fila:nth-child(-n + 3) .fila-pos { color: var(--text-dark); }
+
+.fila-nombre { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+.fila-nombre small { font-weight: 500; color: var(--text-muted); }
+.fila-division { display: block; font-size: 0.75rem; }
+
+.fila-puntos { font-weight: 800; font-size: 1.1rem; }
+.fila-puntos small { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
+
+/* ------------------------------------------------------ mis plantas en la liga */
+
+.mis-plantas { display: flex; flex-direction: column; gap: 0.8rem; }
+
+.planta-liga {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.planta-liga-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; }
+.planta-liga-cabecera h3 { font-size: 1rem; }
+.planta-liga-puntos { font-size: 0.85rem; color: var(--text-muted); }
+.planta-liga-puntos strong { font-size: 1.4rem; color: var(--text-dark); }
+.planta-liga-detalle { font-size: 0.8rem; color: var(--text-muted); }
+
+.chip { padding: 0.2rem 0.6rem; border-radius: 8px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.chip-ok { background: #e8f8ee; color: #15803d; }
+.chip-pendiente { background: #fef3c7; color: #92400e; }
+
+/* ----------------------------------------------------------------- amigos */
+
+.form-amigo { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-amigo label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
+.form-fila { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+.form-fila input {
+  flex: 1 1 220px;
+  min-height: 44px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #d6ddd6;
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+
+.form-mensaje { font-size: 0.85rem; color: var(--primary); min-height: 1.2em; }
+
+.amigos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 1.2rem; }
+.amigos-grupo h3 { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem; }
+.amigos-grupo ul { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+
+.amigo { display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem 0; }
+
+.amigo-avatar {
+  flex: 0 0 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e5ede5;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.amigo-nombre { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.amigo-acciones { display: flex; gap: 0.4rem; }
+
+/* -------------------------------------------------------------- divisiones */
+
+.divisiones { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.8rem; }
+
+.division {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1rem 0.5rem;
+  border-radius: 16px;
+  background: #10151a;
+  color: #eef2ee;
+  text-align: center;
+}
+
+.division-metal { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--acento); }
+.division-rango { font-size: 0.8rem; color: #b9c4be; }
+
+/* ------------------------------------------------- "¡Subiste de división!" */
+
+.ascenso {
+  margin: auto;
+  width: min(390px, calc(100vw - 2rem));
+  border: none;
+  border-radius: 28px;
+  padding: 2rem 1.6rem 1.6rem;
+  background: #10151a;
+  color: #eef2ee;
+  text-align: center;
+}
+
+.ascenso::backdrop { background: rgba(5, 8, 10, 0.75); }
+.ascenso[open] { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; }
+
+.ascenso-mes { font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: #9aa7a0; }
+.ascenso-titulo { font-size: 1.9rem; font-weight: 800; line-height: 1.1; }
+
+.ascenso-escena {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ascenso-escena::before {
+  content: "";
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  background: var(--acento-fondo, #1e1a0c);
+}
+
+.anillo {
+  position: absolute;
+  inset: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--acento);
+  animation: anillo 2.4s ease-out infinite;
+}
+
+.anillo-2 { animation-delay: 1.2s; }
+
+.ascenso-emblema { position: relative; animation: subir 0.9s cubic-bezier(.2, .9, .3, 1.2) both; }
+
+.ascenso-cambio { font-size: 1.1rem; color: #c9d2db; }
+.ascenso-cambio strong { color: var(--acento); }
+.ascenso-texto { color: #b9c4be; line-height: 1.5; }
+
+.ascenso form { width: 100%; }
+.ascenso-cerrar { width: 100%; min-height: 52px; background: var(--acento); color: #10151a; font-size: 1rem; }
+
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@keyframes anillo {
+  from { transform: scale(0.85); opacity: 0.9; }
+  to { transform: scale(1.3); opacity: 0; }
+}
+
+@keyframes subir {
+  from { transform: translateY(24px) scale(0.8); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anillo, .ascenso-emblema { animation: none; }
+  .anillo { opacity: 0.4; }
+  .barra span { transition: none; }
+}
+
+/* ----------------------------------------------------------------- celular */
+
+@media (max-width: 700px) {
+  body { padding: 1rem; }
+  .navbar { flex-wrap: wrap; gap: 0.6rem; }
+  .liga-hero { padding: 1.5rem; justify-content: center; text-align: center; }
+  .hero-emblema { width: 180px; height: 180px; }
+  .hero-emblema .emblema { width: 160px; height: auto; }
+  .hero-mes { justify-content: center; }
+  .hero-division { font-size: 2.2rem; }
+  .boton-fantasma { align-self: center; }
+  .liga-bloque { padding: 1.1rem; }
+  .fila { grid-template-columns: 1.6rem 40px minmax(0, 1fr) auto; gap: 0.6rem; padding: 0.5rem; }
+  .fila-emblema .emblema { width: 40px; height: auto; }
+}

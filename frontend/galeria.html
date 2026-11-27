@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Galería</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/galeria.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-left">
+      <span class="app-tag">MATERA INTELIGENTE</span>
+      <h2 class="welcome-text"><a href="dashboard.html" class="volver">← Mis plantas</a></h2>
+    </div>
+    <div class="nav-right">
+      <a class="status-summary" href="liga.html">🏆 Liga</a>
+    </div>
+  </header>
+
+  <main class="main-container galeria">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">GALERÍA</h1>
+        <p class="section-counter">Presume tu planta. Cada foto muestra cómo estaba según su matera.</p>
+      </div>
+    </div>
+
+    <!-- Subir una foto -->
+    <section class="subir" aria-labelledby="titulo-subir">
+      <h2 class="bloque-titulo" id="titulo-subir">Subir una foto</h2>
+      <form id="form-foto" class="form-foto" novalidate>
+        <div class="campo">
+          <label for="planta">Planta</label>
+          <select id="planta" required></select>
+        </div>
+        <div class="campo">
+          <label for="archivo">Foto (JPEG, PNG o WebP, hasta 10 MB)</label>
+          <input type="file" id="archivo" accept="image/jpeg,image/png,image/webp" required>
+        </div>
+        <div class="vista-previa" id="vista-previa" hidden>
+          <img id="previa" alt="Vista previa de la foto elegida">
+        </div>
+        <div class="campo">
+          <label for="descripcion">Descripción (opcional)</label>
+          <textarea id="descripcion" maxlength="280" rows="2" placeholder="¡Le salió una hoja nueva!"></textarea>
+          <span class="contador" id="contador" aria-live="polite">0/280</span>
+        </div>
+        <p class="nota">Antes de guardarla quitamos la ubicación GPS y los demás datos ocultos que el teléfono le pone a la foto.</p>
+        <button type="submit" class="boton-primario" id="boton-subir">Publicar foto</button>
+        <p class="form-mensaje" id="mensaje" role="status"></p>
+      </form>
+    </section>
+
+    <div class="filtro">
+      <label for="filtro">Ver</label>
+      <select id="filtro">
+        <option value="">Todas las plantas</option>
+      </select>
+    </div>
+
+    <section class="fotos" id="fotos" aria-label="Fotos de la galería" aria-live="polite"></section>
+    <p class="nota centrada" id="fin"></p>
+    <button type="button" class="boton-secundario" id="cargar-mas" hidden>Cargar más fotos</button>
+  </main>
+
+  <!-- Foto en grande -->
+  <dialog class="visor" id="visor" aria-label="Foto en grande">
+    <form method="dialog"><button class="visor-cerrar" aria-label="Cerrar">✕</button></form>
+    <img id="visor-imagen" alt="">
+  </dialog>
+
+  <script src="js/api.js"></script>
+  <script src="js/galeria.js"></script>
+</body>
+</html>

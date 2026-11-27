@@ -75,6 +75,17 @@ La API queda disponible en `http://localhost:5000`.
 | `POST /api/fabrica/materas` | `X-Fabrica-Clave` | `{especie, codigo?, rfid_uid?}` → token del firmware y `url_reclamo` del QR (lo usa `fabrica/estacion.py`); 409 si la tarjeta ya está en otra matera |
 | `GET /api/fabrica/materas/rfid/{uid}` | `X-Fabrica-Clave` | Qué matera tiene pegada esa tarjeta RFID y si ya tiene dueño |
 | `DELETE /api/fabrica/materas/{codigo}` | `X-Fabrica-Clave` | Descarta una matera que nadie reclamó (la estación no pudo generar su etiqueta) |
+| `GET /api/liga/divisiones` | JWT usuario | Las 5 divisiones (Semilla → Árbol) con sus umbrales y las horas mínimas para clasificar |
+| `GET /api/liga/yo?mes=AAAA-MM` | JWT usuario | Puntos, división, división del mes anterior, cuánto falta para subir y detalle por planta (sin `mes`: el actual) |
+| `GET /api/liga/ranking?alcance=global\|amigos&mes=AAAA-MM` | JWT usuario | Ranking del mes; solo aparecen los que clasifican; `mi_posicion` es `null` si el usuario aún no clasifica |
+| `GET /api/amigos` | JWT usuario | Amistades y solicitudes, cada una con `estado` `amigos`, `enviada` o `recibida` |
+| `POST /api/amigos` | JWT usuario | `{correo}` → solicitud (201); si la otra persona ya te la había enviado, quedan amigos (200) |
+| `POST /api/amigos/{id}/aceptar` | JWT usuario | Acepta una solicitud recibida |
+| `DELETE /api/amigos/{id}` | JWT usuario | Rechaza, cancela o deja de ser amigos (204) |
+| `POST /api/plantas/{id}/fotos` | JWT usuario | `multipart/form-data` con `foto` (JPEG, PNG o WebP, ≤ 10 MB) y `descripcion` opcional; solo un dueño. Se guarda como WebP sin EXIF (sin GPS) |
+| `GET /api/fotos?limite=&antes_de=&planta=` | JWT usuario | Galería de todos, de la más nueva a la más vieja, con la última lectura de la planta al subir la foto |
+| `GET /api/fotos/{id}/imagen` | JWT usuario | El archivo de la foto (el front lo pide con `fetch` y lo muestra como blob) |
+| `DELETE /api/fotos/{id}` | JWT usuario | Borra quien la subió o un dueño de la planta (204) |
 | `WS /ws/dispositivos` | Token de dispositivo (1.er mensaje) | Conexión permanente del ESP32: lecturas, órdenes y presencia en vivo |
 | `WS /ws/app` | JWT usuario (1.er mensaje) | Avisos en vivo al front: lecturas, conexión/desconexión de materas, órdenes cumplidas |
 | `POST /diagnostico`, `GET /especies` | — | Endpoints de la fase 1 |

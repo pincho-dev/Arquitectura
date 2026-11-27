@@ -29,3 +29,6 @@ firmware/**/config.h
 
 # Estación de fábrica: configs del firmware con tokens y WiFi
 fabrica/salida/
+
+# Fotos subidas a la galería (datos de usuarios)
+backend/media/

@@ -109,3 +109,76 @@ class DescartarMateraPort(ABC):
     @abstractmethod
     def ejecutar(self, codigo):
         pass
+
+
+class ConsultarMiLigaPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, ahora, anio=None, mes=None):
+        """Devuelve MiLiga (puntos, división y detalle por planta). Sin mes: el actual.
+        Lanza PeriodoInvalido."""
+        pass
+
+
+class ConsultarRankingPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, alcance, ahora, anio=None, mes=None):
+        """Devuelve un Ranking "global" o entre "amigos" (que incluye al usuario).
+        Lanza AlcanceInvalido, PeriodoInvalido."""
+        pass
+
+
+class ListarAmistadesPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id):
+        pass
+
+
+class SolicitarAmistadPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, correo, ahora):
+        """Devuelve la Amistad. Si la otra persona ya le había enviado una
+        solicitud, la acepta. Lanza AmigoNoRegistrado, SolicitudInvalida,
+        SolicitudYaExiste, YaSonAmigos."""
+        pass
+
+
+class AceptarAmistadPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, amistad_id, ahora):
+        """Solo el destinatario acepta. Lanza AmistadNoEncontrada."""
+        pass
+
+
+class EliminarAmistadPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, amistad_id):
+        """Rechazar, cancelar o dejar de ser amigos. Lanza AmistadNoEncontrada."""
+        pass
+
+
+class SubirFotoPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, planta_id, contenido, descripcion=None):
+        """Devuelve la Foto. Lanza PlantaNoEncontrada, AccesoDenegado, ImagenInvalida,
+        DatosDeFotoInvalidos."""
+        pass
+
+
+class ListarFotosPort(ABC):
+    @abstractmethod
+    def ejecutar(self, limite, antes_de=None, planta_id=None):
+        pass
+
+
+class VerFotoPort(ABC):
+    @abstractmethod
+    def ejecutar(self, foto_id):
+        """Devuelve (Foto, bytes). Lanza FotoNoEncontrada."""
+        pass
+
+
+class EliminarFotoPort(ABC):
+    @abstractmethod
+    def ejecutar(self, usuario_id, foto_id):
+        """Lanza FotoNoEncontrada, AccesoDenegado."""
+        pass

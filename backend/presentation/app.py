@@ -1,6 +1,7 @@
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
@@ -8,7 +9,9 @@ from flask_cors import CORS
 from flask_sock import Sock
 import os
 
+from application.amistades import AceptarAmistad, EliminarAmistad, ListarAmistades, SolicitarAmistad
 from application.avisos import AvisarDuenos
+from application.fotos import EliminarFoto, ListarFotos, SubirFoto, VerFoto
 from application.compartir_planta import CompartirPlanta
 from application.enviar_orden import EnviarOrden
 from application.consultar_plantas import ConsultarEstadoPlanta, ListarPlantas
@@ -20,24 +23,33 @@ from application.vincular_dispositivo import VincularDispositivo
 from application.iniciar_sesion import IniciarSesion
 from application.materas import DescartarMatera, FabricarMatera, IdentificarMatera, ReclamarMatera
 from application.registrar_usuario import RegistrarUsuario
+from infrastructure.almacen_fotos_disco import AlmacenFotosDisco
 from infrastructure.autenticador_dispositivos_bd import AutenticadorDispositivosBd
 from infrastructure.canal_websocket import CanalAppWebSocket, CanalDispositivosWebSocket
+from infrastructure.datos_liga_bd import DatosLigaBd
 from infrastructure.db.conexion import crear_engine
 from infrastructure.especie_lookup_bd import EspecieLookupBd
 from infrastructure.especie_lookup_csv import EspecieLookupCsv
 from infrastructure.hasher_bcrypt import HasherBcrypt
 from infrastructure.historial_lecturas_bd import HistorialLecturasBd
+from infrastructure.repositorio_amistades_bd import RepositorioAmistadesBd
+from infrastructure.procesador_imagenes_pillow import ProcesadorImagenesPillow
+from infrastructure.repositorio_fotos_bd import RepositorioFotosBd
 from infrastructure.repositorio_dispositivos_bd import RepositorioDispositivosBd
 from infrastructure.repositorio_plantas_bd import RepositorioPlantasBd
 from infrastructure.tokens_dispositivo import GeneradorTokensDispositivoAleatorio
 from infrastructure.repositorio_usuarios_bd import RepositorioUsuariosBd
 from infrastructure.tokens_jwt import TokensJwt
+from domain.fotos import TAMANO_MAXIMO_BYTES
 from domain.modelos import ValorFueraDeRangoFisico
 from domain.puertos import EspecieNoEncontrada
+from application.liga import ConsultarMiLiga, ConsultarRanking
 from application.listar_especies import ListarEspecies
 from presentation.api_auth import crear_api_auth
 from presentation.api_dispositivos import crear_api_dispositivos
 from presentation.api_fabrica import crear_api_fabrica
+from presentation.api_fotos import crear_api_fotos
+from presentation.api_liga import crear_api_amigos, crear_api_liga
 from presentation.api_plantas import crear_api_mis_dispositivos, crear_api_plantas
 from presentation.cli_fabrica import registrar_cli_fabrica
 from presentation.seguridad import crear_requiere_usuario
@@ -113,6 +125,37 @@ app.register_blueprint(crear_api_mis_dispositivos(
     listar_plantas, requiere_usuario,
     EnviarOrden(repositorio_dispositivos, repositorio_plantas, canal_dispositivos),
     canal_dispositivos,
+))
+
+# Gamificación: los puntos se calculan desde las lecturas, por días de la zona
+# horaria de los usuarios (un "día" empieza a medianoche en Colombia, no en UTC).
+zona_liga = ZoneInfo(os.environ.get("ZONA_HORARIA", "America/Bogota"))
+datos_liga = DatosLigaBd(engine)
+repositorio_amistades = RepositorioAmistadesBd(engine)
+app.register_blueprint(crear_api_liga(
+    ConsultarMiLiga(datos_liga, zona_liga),
+    ConsultarRanking(datos_liga, repositorio_amistades, zona_liga),
+    requiere_usuario,
+))
+app.register_blueprint(crear_api_amigos(
+    ListarAmistades(repositorio_amistades),
+    SolicitarAmistad(repositorio_amistades, repositorio_usuarios),
+    AceptarAmistad(repositorio_amistades),
+    EliminarAmistad(repositorio_amistades),
+    requiere_usuario,
+))
+
+# Galería de fotos. El archivo va al disco (FOTOS_DIR) ya sin EXIF; Flask
+# corta cualquier petición más grande que el máximo antes de leerla entera.
+app.config["MAX_CONTENT_LENGTH"] = TAMANO_MAXIMO_BYTES + 64 * 1024  # + margen del multipart
+almacen_fotos = AlmacenFotosDisco(os.environ.get("FOTOS_DIR") or Path(__file__).resolve().parent.parent / "media" / "fotos")
+repositorio_fotos = RepositorioFotosBd(engine)
+app.register_blueprint(crear_api_fotos(
+    SubirFoto(repositorio_plantas, historial_lecturas, repositorio_fotos, almacen_fotos, ProcesadorImagenesPillow()),
+    ListarFotos(repositorio_fotos),
+    VerFoto(repositorio_fotos, almacen_fotos),
+    EliminarFoto(repositorio_fotos, almacen_fotos),
+    requiere_usuario,
 ))
 
 # Fábrica: el mismo caso de uso por dos adaptadores de entrada, la consola

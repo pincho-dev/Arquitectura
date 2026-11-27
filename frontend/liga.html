@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Matera Inteligente - Liga</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/liga.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-left">
+      <span class="app-tag">MATERA INTELIGENTE</span>
+      <h2 class="welcome-text"><a href="dashboard.html" class="volver">← Mis plantas</a></h2>
+    </div>
+    <div class="nav-right">
+      <span class="status-summary">🏆 Liga de la matera</span>
+    </div>
+  </header>
+
+  <main class="main-container liga">
+    <!-- Mi división del mes -->
+    <section class="liga-hero" id="hero" aria-live="polite">
+      <p class="liga-cargando">Cargando tu división…</p>
+    </section>
+
+    <div class="liga-columnas">
+      <section class="liga-bloque" aria-labelledby="titulo-ranking">
+        <div class="bloque-header">
+          <h2 class="bloque-titulo" id="titulo-ranking">Ranking del mes</h2>
+          <div class="tabs" role="group" aria-label="Alcance del ranking">
+            <button type="button" class="tab activo" data-alcance="global" aria-pressed="true">Global</button>
+            <button type="button" class="tab" data-alcance="amigos" aria-pressed="false">Amigos</button>
+          </div>
+        </div>
+        <ol class="ranking" id="ranking"></ol>
+        <p class="nota" id="ranking-nota"></p>
+      </section>
+
+      <section class="liga-bloque" aria-labelledby="titulo-plantas">
+        <h2 class="bloque-titulo" id="titulo-plantas">Mis plantas en la liga</h2>
+        <div class="mis-plantas" id="mis-plantas"></div>
+      </section>
+    </div>
+
+    <section class="liga-bloque" aria-labelledby="titulo-amigos">
+      <h2 class="bloque-titulo" id="titulo-amigos">Amigos</h2>
+      <form class="form-amigo" id="form-amigo">
+        <label for="correo-amigo">Correo de tu amigo</label>
+        <div class="form-fila">
+          <input type="email" id="correo-amigo" placeholder="amigo@correo.com" required autocomplete="email">
+          <button type="submit" class="boton-primario">Enviar solicitud</button>
+        </div>
+        <p class="form-mensaje" id="amigo-mensaje" role="status"></p>
+      </form>
+      <div class="amigos" id="amigos"></div>
+    </section>
+
+    <section class="liga-bloque" aria-labelledby="titulo-divisiones">
+      <h2 class="bloque-titulo" id="titulo-divisiones">Divisiones</h2>
+      <div class="divisiones" id="divisiones"></div>
+      <p class="nota" id="reglas"></p>
+    </section>
+  </main>
+
+  <!-- "¡Subiste de división!": se muestra una vez por mes al subir, o con "Ver mi emblema". -->
+  <dialog class="ascenso" id="ascenso" aria-labelledby="ascenso-titulo">
+    <p class="ascenso-mes" id="ascenso-mes"></p>
+    <h2 class="ascenso-titulo" id="ascenso-titulo"></h2>
+    <div class="ascenso-escena">
+      <span class="anillo" aria-hidden="true"></span>
+      <span class="anillo anillo-2" aria-hidden="true"></span>
+      <div class="ascenso-emblema" id="ascenso-emblema"></div>
+    </div>
+    <p class="ascenso-cambio" id="ascenso-cambio"></p>
+    <p class="ascenso-texto" id="ascenso-texto"></p>
+    <form method="dialog">
+      <button class="boton-primario ascenso-cerrar" id="ascenso-cerrar">¡Vamos!</button>
+    </form>
+  </dialog>
+
+  <script src="js/api.js"></script>
+  <script src="js/emblemas.js"></script>
+  <script src="js/liga.js"></script>
+</body>
+</html>

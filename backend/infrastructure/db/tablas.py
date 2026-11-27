@@ -162,3 +162,45 @@ lecturas = Table(
     # "Última lectura" e historial de una planta salen de este índice.
     Index("ix_lecturas_planta_id_medida_en", "planta_id", text("medida_en DESC")),
 )
+
+# ---------------------------------------------------------- liga (amistades)
+
+# Una fila por par de usuarios: la solicitud y, al aceptarla, la amistad.
+# El índice único sobre (menor, mayor) impide que A→B y B→A existan a la vez.
+amistades = Table(
+    "amistades", metadata,
+    Column("id", BigInteger, Identity(), primary_key=True),
+    Column("solicitante_id", BigInteger, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False),
+    Column("destinatario_id", BigInteger, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False),
+    Column("aceptada_en", DateTime(timezone=True)),
+    _creado_en(),
+    CheckConstraint("solicitante_id <> destinatario_id", name="no_a_si_mismo"),
+    Index("uq_amistades_par", func.least(text("solicitante_id"), text("destinatario_id")),
+          func.greatest(text("solicitante_id"), text("destinatario_id")), unique=True),
+    Index(None, "destinatario_id"),
+)
+
+# ------------------------------------------------------- galería de fotos
+
+# Los archivos viven en el AlmacenFotos (disco); aquí solo la clave con que se
+# guardaron y una copia de la última lectura de la planta al subir la foto.
+fotos = Table(
+    "fotos", metadata,
+    Column("id", BigInteger, Identity(), primary_key=True),
+    Column("planta_id", BigInteger, ForeignKey("plantas.id", ondelete="CASCADE"), nullable=False),
+    Column("autor_id", BigInteger, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False),
+    Column("clave_archivo", String(32), nullable=False, unique=True),
+    Column("tipo", String(30), nullable=False),
+    Column("ancho", Integer, nullable=False),
+    Column("alto", Integer, nullable=False),
+    Column("descripcion", String(280)),
+    Column("estado", String(15)),
+    Column("humedad", _medida()),
+    Column("luz", _medida()),
+    Column("temperatura", _medida()),
+    Column("medida_en", DateTime(timezone=True)),
+    _creado_en(),
+    CheckConstraint("estado IS NULL OR estado IN ('SALUDABLE', 'EN_RIESGO', 'CRITICO')", name="estado_valido"),
+    Index(None, "planta_id"),
+    Index(None, "autor_id"),
+)

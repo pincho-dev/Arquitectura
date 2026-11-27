@@ -156,3 +156,103 @@ class CanalDispositivos(ABC):
     def enviar_orden(self, codigo, orden):
         """Devuelve el id de la orden. Lanza DispositivoDesconectado."""
         pass
+
+
+class DatosLiga(ABC):
+    """Lo que la liga necesita leer: quién participa y los estados de sus
+    materas. El dominio no sabe que salen de la tabla de lecturas."""
+    @abstractmethod
+    def participantes(self, usuario_ids=None):
+        """Lista de Participante. Con usuario_ids: esos usuarios activos, tengan
+        o no plantas. Sin él: todos los usuarios activos con al menos una planta."""
+        pass
+
+    @abstractmethod
+    def estados(self, planta_ids, desde, hasta):
+        """{planta_id: [(medida_en, estado), ...]} en orden, solo lecturas de
+        materas (no del formulario) con desde <= medida_en < hasta."""
+        pass
+
+
+class RepositorioAmistades(ABC):
+    @abstractmethod
+    def buscar(self, amistad_id):
+        """Devuelve la Amistad o None."""
+        pass
+
+    @abstractmethod
+    def buscar_entre(self, usuario_a, usuario_b):
+        """La Amistad entre los dos (en cualquier sentido) o None."""
+        pass
+
+    @abstractmethod
+    def crear(self, solicitante_id, destinatario_id):
+        """Devuelve la Amistad pendiente. Lanza SolicitudYaExiste."""
+        pass
+
+    @abstractmethod
+    def aceptar(self, amistad_id, cuando):
+        pass
+
+    @abstractmethod
+    def eliminar(self, amistad_id):
+        pass
+
+    @abstractmethod
+    def listar_de_usuario(self, usuario_id):
+        """Todas las amistades donde participa, pendientes y aceptadas."""
+        pass
+
+    @abstractmethod
+    def ids_amigos(self, usuario_id):
+        """Conjunto de ids de sus amigos (solo amistades aceptadas)."""
+        pass
+
+
+class ProcesadorImagenes(ABC):
+    @abstractmethod
+    def normalizar(self, contenido):
+        """bytes -> ImagenNormalizada: valida por el contenido que sea una foto
+        de un formato permitido, la endereza, la reduce y la vuelve a codificar
+        SIN metadatos (EXIF/GPS). Lanza ImagenInvalida."""
+        pass
+
+
+class AlmacenFotos(ABC):
+    """Dónde viven los archivos de las fotos. El dominio no sabe si es el
+    disco del servidor o un servicio en la nube."""
+    @abstractmethod
+    def guardar(self, clave, contenido):
+        pass
+
+    @abstractmethod
+    def abrir(self, clave):
+        """Devuelve los bytes o None si no existe."""
+        pass
+
+    @abstractmethod
+    def eliminar(self, clave):
+        """No falla si ya no existe."""
+        pass
+
+
+class RepositorioFotos(ABC):
+    @abstractmethod
+    def crear(self, planta_id, autor_id, clave_archivo, tipo, ancho, alto, descripcion, lectura):
+        """Devuelve la Foto creada."""
+        pass
+
+    @abstractmethod
+    def buscar(self, foto_id):
+        """Devuelve la Foto (con los dueños de su planta) o None."""
+        pass
+
+    @abstractmethod
+    def listar(self, limite, antes_de=None, planta_id=None):
+        """Las más recientes primero. antes_de: id de la última foto ya vista
+        (para "cargar más")."""
+        pass
+
+    @abstractmethod
+    def eliminar(self, foto_id):
+        pass
